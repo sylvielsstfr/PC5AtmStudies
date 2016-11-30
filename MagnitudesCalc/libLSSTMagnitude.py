@@ -1,6 +1,6 @@
 """
-libLSSTFilter
-=============
+libLSSTMagnitude.py
+=============----
 
 
 author : Sylvie Dagoret-Campagne
@@ -30,6 +30,16 @@ detdatafilename='data/transmissions-LSST.dat'
 #various path to be used
 path_atm_rt_us_sa_rt_oz='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/us/sa/rt/oz/out'
 path_atm_rt_us_sa_lt_oz='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/us/sa/lt/oz/out'
+path_atm_rt_us_sa_rt_pwv='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/us/sa/rt/pwv/out'
+path_atm_rt_us_sa_lt_pwv='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/us/sa/lt/pwv/out'
+#
+path_atm_rt_sw_sa_rt_oz='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/sw/sa/rt/oz/out'
+path_atm_rt_sw_sa_lt_oz='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/sw/sa/lt/oz/out'
+path_atm_rt_sw_sa_rt_pwv='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/sw/sa/rt/pwv/out'
+path_atm_rt_sw_sa_lt_pwv='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/sw/sa/lt/pwv/out'
+#
+
+
 #-------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
@@ -41,6 +51,9 @@ class LSST_Magnitude:
     Class to compute relative magnitude
     
     """
+    thesum=0
+    themag=0
+    
     def ComputeSEDxAtm(self,wl_sed,sed,wl_atm,atm):
         interpol_atm=interp1d(wl_atm,atm)
         return sed*interpol_atm(wl_sed)*wl_sed
@@ -54,15 +67,15 @@ class LSST_Magnitude:
         interpol_atm=interp1d(wl_atm,atm)
         theproduct=sed*interpol_atm(wl_sed)*wl_sed
         thesum=theproduct.sum()
-        themag=2.5*np.log10(thesum)
-        return themag
+        themag=-2.5*np.log10(thesum)
+        return -themag
     def ComputeRelativeMagSEDxAtmxFilt(self,wl_sed,sed,wl_atm,atm,wl_filt,filt):
         interpol_atm=interp1d(wl_atm,atm)
         interpol_filt=interp1d(wl_filt,filt)
         theproduct=sed*interpol_atm(wl_sed)*interpol_filt(wl_sed)*wl_sed 
-        thesum=theproduct.sum()
-        themag=2.5*np.log10(thesum)
-        return themag
+        self.thesum=theproduct.sum()
+        self.themag=-2.5*np.log10(self.thesum)
+        return self.themag
 
 
 
@@ -145,7 +158,7 @@ class Filter:
         self.z=np.asarray(df['Z'])*0.01
         self.y4=np.asarray(df['Y4'])*0.01
         self.atm=np.asarray(df['atm'])
-        print 'init Filter size=',self.wl.shape
+
     def wavelength_to_u_spl(self):
         #return UnivariateSpline(self.wl,self.u)
         return interp1d(self.wl,self.u,kind='cubic')
@@ -224,6 +237,7 @@ def PlotFilter():
     colors = ['blue','green','red', 'orange','grey','black'] 
     df.plot(x='wl', y=['U','G','R','I','Z','Y4'],color=colors)
     plt.ylim([0,100])
+    plt.title('filters')
     plt.xlabel("$\lambda$")
     plt.ylabel("Filter transmission")
     plt.title("Filters")
@@ -235,6 +249,9 @@ def PlotSED():
     print wl.shape
     plt.figure()
     plt.plot(wl,sed,'-')
+    plt.title('SED')
+    plt.xlabel('$\lambda$ (nm)')
+    plt.ylabel('sed')
     
 #----------------------------------------------------------------------------    
 def PlotSESxFilter():
@@ -267,6 +284,10 @@ def PlotSESxFilter():
     plt.plot(wl,ti)
     plt.plot(wl,tz)
     plt.plot(wl,ty4)
+    
+    plt.title('filter')
+    plt.xlabel('$\lambda$ (nm)')
+    plt.ylabel('filter transmission')
 #-----------------------------------------------------------------------------
 
 def PlotAtmosphere():
@@ -275,29 +296,44 @@ def PlotAtmosphere():
     wl,tr=atm.get_air_transparency("RT_LS_pp_us_sa_rt_z30_oz22.OUT")
     plt.figure()
     plt.plot(wl,tr)
+    plt.title('atmosphere')
+    plt.xlabel('$\lambda$ (nm)')
+    plt.ylabel('atmosphere transmission')
 
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 if __name__ == "__main__":
 
-
+    # 1) Example of SED
+    # -------------------
     PlotSED()
 
     # Build the SED
+    # ---------------
     (wl_sed,sed)=MakeSED(lambda_min=300.,lambda_max=1200.,dlambda=1.,slope=-3)
     
-    print 'wl_sed = ',wl_sed.shape
-    print 'sed = ',sed.shape    
     
-    # Build the atmosphere
+    # 2) Build the atmosphere
+    # -----------------------
     atm=RT_Atmosphere(path_atm_rt_us_sa_rt_oz)
     #print atm.list_of_atmfiles()
     (wl_atm,tr_atm)=atm.get_air_transparency("RT_LS_pp_us_sa_rt_z30_oz22.OUT")
 
-    print 'wl_atm = ',wl_atm.shape
-    print 'tr_atm = ',tr_atm.shape
     
-
+    # 3) Filter
+    # --------------
+    flt=Filter()
+    
+    wl_u,u=flt.get_u_tr()
+    wl_g,g=flt.get_g_tr()
+    wl_r,r=flt.get_r_tr()
+    wl_i,i=flt.get_i_tr()
+    wl_z,z=flt.get_z_tr()
+    wl_y4,y4=flt.get_y4_tr()
+    
+    # 4) Magnitude
+    #--------------
+    
     mag=LSST_Magnitude()    
     fl=mag.ComputeSEDxAtm(wl_sed,sed,wl_atm,tr_atm)
     
@@ -305,15 +341,40 @@ if __name__ == "__main__":
     #sed*interpol_atm(wl_sed)    
     
     plt.figure()
-    plt.plot(wl_sed,fl)  
+    plt.plot(wl_sed,fl)
+    plt.xlabel('$\lambda$ (nm)')
+    plt.ylabel('spectrum')
     
-    flt=Filter()
-    wl_i,i=flt.get_i_tr()
-    fl2=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_i,i)
+    fl_u=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_u,u)
+    fl_g=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_g,g)
+    fl_r=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_r,r)
+    fl_i=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_i,i)
+    fl_z=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_z,z)
+    fl_y4=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_y4,y4)
     
     plt.figure()
-    plt.plot(wl_sed,fl2)  
+    plt.plot(wl_sed,fl_u) 
+    plt.plot(wl_sed,fl_g)
+    plt.plot(wl_sed,fl_r)
+    plt.plot(wl_sed,fl_i) 
+    plt.plot(wl_sed,fl_z)
+    plt.plot(wl_sed,fl_y4) 
+    plt.xlabel('$\lambda$ (nm)')
+    plt.ylabel('spectrum')
+   
     
-    M1_i=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_i,i)
-    print 'magnitude(I) = ' , M1
+    M_u=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_u,u)
+    print 'magnitude(U) = ' , M_u
+    M_g=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_g,g)
+    print 'magnitude(G) = ' , M_g
+    M_r=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_r,r)
+    print 'magnitude(R) = ' , M_r
+    M_i=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_i,i)
+    print 'magnitude(I) = ' , M_i
+    M_z=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_z,z)
+    print 'magnitude(Z) = ' , M_z
+    M_y4=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_y4,y4)
+    print 'magnitude(Y4) = ' , M_y4
+   
+    
     
