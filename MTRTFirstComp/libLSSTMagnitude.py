@@ -39,6 +39,8 @@ path_atm_rt_sw_sa_rt_pwv='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHu
 path_atm_rt_sw_sa_lt_pwv='/Users/dagoret-campagnesylvie/MacOsX/LSST/MyWork/GitHub/PC5AtmosphericExtinction/LibRadTran/simulations/RT/2.0/LS/pp/sw/sa/lt/pwv/out'
 #
 
+modtran_path='modtran_samples/MT_FirstSamples'
+modtran_atmfile="Pachon_MODTRAN.1.5.kg.1.6.17.xlsx"
 
 #-------------------------------------------------------------------------------
 
@@ -91,6 +93,7 @@ class RT_Atmosphere:
     pathname=""
     anyfilelist = []
     atmfilelist = []
+    filename_ =''
     def __init__(self,pathname):
         self.pathname=pathname
         for file in os.listdir(self.pathname):
@@ -109,11 +112,54 @@ class RT_Atmosphere:
              y=data[:,1]
              return x,y
         else:
-            print "No atmospheric file ", filename,"found"
-            return 0,0
+             print "No atmospheric file ", filename,"found"
+             return 0,0
 #-----------------------------------------------------------------------------------       
     
+class MT_Atmosphere:
+    """
+    class MT Atmosphere
+    ===================
     
+    class to read Modtran file
+    """
+    pathname=""
+    anyfilelist = []
+    atmfilelist = []
+    filename_ =''
+    def __init__(self,pathname):
+        self.pathname=pathname
+        for file in os.listdir(self.pathname):
+            self.anyfilelist.append(file)
+            if re.search('.xlsx',file) or re.search('.XLSX',file) :
+                self.atmfilelist.append(file)
+    def list_of_anyfiles(self):
+        return self.anyfilelist
+    def list_of_atmfiles(self):
+        return self.atmfilelist
+    def get_air_transparency(self,filename):
+        if self.atmfilelist.count(filename) == 1:
+             fullpath=os.path.join(self.pathname,filename)
+             mtfile = pd.ExcelFile(fullpath)
+             sheet_name=mtfile.sheet_names[0]
+             df_colname = mtfile.parse(sheet_name,index_row=14,usecols=range(0,6))
+             df = mtfile.parse(sheet_name,header=16,usecols=range(0,6))
+             df.columns = ["wl", "comb","h2o","o2", "o3","scat"]
+             MT_X=df["wl"]
+             MT_Y1=df["h2o"]
+             MT_Y2=df["o3"]
+             MT_Y3=df["scat"]
+             MT_Y4=df["o2"]
+             MT_Y5=df["comb"]
+             MT_Y6=MT_Y1*MT_Y2*MT_Y4  # 
+             MT_Y=MT_Y1*MT_Y2*MT_Y3*MT_Y4
+             
+             x=MT_X
+             y=MT_Y
+             return x,y
+        else:
+             print "No modtran atmospheric file ", filename,"found"
+             return 0,0				
     
     
 #---------------------------------------------------------------------------
@@ -310,7 +356,7 @@ if __name__ == "__main__":
 
     # Build the SED
     # ---------------
-    (wl_sed,sed)=MakeSED(lambda_min=300.,lambda_max=1200.,dlambda=1.,slope=-3)
+    (wl_sed,sed)=MakeSED(lambda_min=300.,lambda_max=1100.,dlambda=1.,slope=-3)
     
     
     # 2) Build the atmosphere
@@ -344,6 +390,7 @@ if __name__ == "__main__":
     plt.plot(wl_sed,fl)
     plt.xlabel('$\lambda$ (nm)')
     plt.ylabel('spectrum')
+    plt.title('Source spectrum through LibRadtran atmosphere')
     
     fl_u=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_u,u)
     fl_g=mag.ComputeSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_g,g)
@@ -361,7 +408,7 @@ if __name__ == "__main__":
     plt.plot(wl_sed,fl_y4) 
     plt.xlabel('$\lambda$ (nm)')
     plt.ylabel('spectrum')
-   
+    plt.title('Source spectrum through Radtran atmosphere and Filters')
     
     M_u=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_u,u)
     print 'magnitude(U) = ' , M_u
@@ -376,5 +423,41 @@ if __name__ == "__main__":
     M_y4=mag.ComputeRelativeMagSEDxAtmxFilt(wl_sed,sed,wl_atm,tr_atm,wl_y4,y4)
     print 'magnitude(Y4) = ' , M_y4
    
+   
+   #-------------------------------------------------------------------------
+    
+    # 5) Modtran
+    mt_atm=MT_Atmosphere(modtran_path)
+    print mt_atm.list_of_atmfiles()
+    (mt_wl_atm,mt_tr_atm)=mt_atm.get_air_transparency(modtran_atmfile)
+  
+    
+     
+    mt_fl=mag.ComputeSEDxAtm(wl_sed,sed,mt_wl_atm,mt_tr_atm)
+    
+    plt.figure()
+    plt.plot(wl_sed,mt_fl)
+    plt.xlabel('$\lambda$ (nm)')
+    plt.ylabel('spectrum')
+    plt.title('Source spectrum through Modtran atmosphere')
     
     
+    
+    
+    mt_fl_u=mag.ComputeSEDxAtmxFilt(wl_sed,sed,mt_wl_atm,mt_tr_atm,wl_u,u)
+    mt_fl_g=mag.ComputeSEDxAtmxFilt(wl_sed,sed,mt_wl_atm,mt_tr_atm,wl_g,g)
+    mt_fl_r=mag.ComputeSEDxAtmxFilt(wl_sed,sed,mt_wl_atm,mt_tr_atm,wl_r,r)
+    mt_fl_i=mag.ComputeSEDxAtmxFilt(wl_sed,sed,mt_wl_atm,mt_tr_atm,wl_i,i)
+    mt_fl_z=mag.ComputeSEDxAtmxFilt(wl_sed,sed,mt_wl_atm,mt_tr_atm,wl_z,z)
+    mt_fl_y4=mag.ComputeSEDxAtmxFilt(wl_sed,sed,mt_wl_atm,mt_tr_atm,wl_y4,y4)
+    
+    plt.figure()
+    plt.plot(wl_sed,mt_fl_u) 
+    plt.plot(wl_sed,mt_fl_g)
+    plt.plot(wl_sed,mt_fl_r)
+    plt.plot(wl_sed,mt_fl_i) 
+    plt.plot(wl_sed,mt_fl_z)
+    plt.plot(wl_sed,mt_fl_y4) 
+    plt.xlabel('$\lambda$ (nm)')
+    plt.ylabel('spectrum')
+    plt.title('Source spectrum through Modtran atmosphere and Filters')
