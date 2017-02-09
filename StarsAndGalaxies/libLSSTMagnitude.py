@@ -287,7 +287,7 @@ def MakeSED(lambda_min=300.,lambda_max=1200.,dlambda=1.,slope=0):
     return wl,sed  
 #---------------------------------------------------------------------------------
 
-def ReadSED(filename,filetype='xlsx',lambda_min=300.,lambda_max=1199.,dlambda=1.,headerstop=0,cmin=0,cmax=2):
+def ReadSED(filename,filetype='xlsx',lambda_min=300.,lambda_max=1099.,dlambda=1.,headerstop=0,cmin=0,cmax=2):
     """
     ReadSED in a file
     ===================
