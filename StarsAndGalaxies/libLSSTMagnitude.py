@@ -51,6 +51,8 @@ filename_pick_uk_xcl=['Pick.UK.No.2.22.xlsx','Pick.UK.50.No.4.xlsx']
 filename_pick_uk_fits=['pickles_uk_22.fits','pickles_uk_50.fits']    # fits are the same file as above xcl file
 filename_pick_110=['Pickles.No.1.110.xlsx','pickles_110.fits','pickles_110.ascii.txt'] # same files
 
+eps=0
+
 #-------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
@@ -79,15 +81,21 @@ class LSST_Magnitude:
         dwl=self.ComputeWlbinSize(wl_sed)
         theproduct=sed*interpol_atm(wl_sed)*wl_sed*dwl
         thesum=theproduct.sum()
-        themag=-2.5*np.log10(thesum)
-        return -themag
+        if np.abs(thesum)<=eps:
+            themag=0
+        else:
+            themag=-2.5*np.log10(thesum)
+        return themag
     def ComputeRelativeMagSEDxAtmxFilt(self,wl_sed,sed,wl_atm,atm,wl_filt,filt):
         dwl=self.ComputeWlbinSize(wl_sed)
         interpol_atm=interp1d(wl_atm,atm)
         interpol_filt=interp1d(wl_filt,filt)
         theproduct=sed*interpol_atm(wl_sed)*interpol_filt(wl_sed)*wl_sed*dwl 
         self.thesum=theproduct.sum()
-        self.themag=-2.5*np.log10(self.thesum)
+        if np.abs(self.thesum)<= eps:
+            self.themag=0
+        else:
+            self.themag=-2.5*np.log10(self.thesum)
         return self.themag
     def ComputeWlbinSize(self,wl):
         len=wl.shape[0]
@@ -300,7 +308,7 @@ def ReadSED(filename,filetype='xlsx',lambda_min=300.,lambda_max=1099.,dlambda=1.
     if filetype=="xlsx":
         file_xlsx= pd.ExcelFile(filename)
         sheet_name = file_xlsx.sheet_names[0]
-        df = file_xlsx.parse(sheet_name,headerstop,usecols=range(cmin,cmax))
+        df = file_xlsx.parse(sheet_name,header=headerstop,usecols=range(cmin,cmax))
         df.columns = ["wl","flux"]
         x=np.array(df["wl"])/10.
         y=np.array(df["flux"])
