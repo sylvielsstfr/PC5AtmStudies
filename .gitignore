@@ -3,3 +3,12 @@
 *.png
 *.gif
 *.pyc
+*.pdf
+*.xlsx
+*.tgz
+*.txt
+*.gz
+*.log
+*.out
+*.aux
+*.dvi
