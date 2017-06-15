@@ -68,63 +68,14 @@ def usage():
     print "*******************************************************************"
     
     
-#####################################################################
-# The program simulation start here
-#
-####################################################################
 
-def main(argv):
-    airmass_str=""
-    pwv_str=""
-    oz_str=""
-    try:
-        opts, args = getopt.getopt(argv,"hz:w:o:",["am=","pwv=","oz="])
-    except getopt.GetoptError:
-        print 'test.py -z <airmass> -w <pwv> -o <oz>'
-        sys.exit(2)
-        
-    for opt, arg in opts:
-        if opt == '-h':
-            usage()
-            sys.exit()
-        elif opt in ("-z", "--airmass"):
-            airmass_str = arg
-        elif opt in ("-w", "--pwv"):
-            pwv_str = arg
-        elif opt in ("-o", "--oz"):
-            oz_str = arg   
-         
-    print '--------------------------------------------'     
-    print '1) airmass = ', airmass_str
-    print '1) pwv = ', pwv_str
-    print "1) oz = ", oz_str
-    print '--------------------------------------------' 
-
-    if airmass_str=="":
-        usage()
-        sys.exit()
-
-    if pwv_str=="":
-        usage()
-        sys.exit()
-
-    if oz_str=="":
-        usage()
-        sys.exit()
-	
-	
-	
- 
-    #if airmass_str=="" | pwv_str=="" | oz_str=="":
-    #    usage()
-    #	sys.exit()
-
-    return float(airmass_str),float(pwv_str),float(oz_str)	
  
 #-----------------------------------------------------------------------------
-if __name__ == "__main__":
 
-    airmass_num,pwv_num,oz_num=main(sys.argv[1:])
+
+def ProcessSimulation(irmass_num,pwv_num,oz_num):    
+    
+    
     print '--------------------------------------------'
     print ' 2) airmass = ', airmass_num
     print ' 2) pwv = ', pwv_num
@@ -315,5 +266,91 @@ if __name__ == "__main__":
         uvspec.run(inp,out,verbose,path=libradtranpath)
         
         
- 
+    return OUTPUTDIR,outputFilename
 
+#---------------------------------------------------------------------------
+#####################################################################
+# The program simulation start here
+#
+####################################################################
+
+if __name__ == "__main__":
+    
+    
+    airmass_str=""
+    pwv_str=""
+    oz_str=""
+    
+    
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"hz:w:o:",["z=","w=","o="])
+    except getopt.GetoptError:
+        print ' Exception bad getopt with :: '+sys.argv[0]+ ' -z <airmass> -w <pwv> -o <oz>'
+        sys.exit(2)
+        
+        
+        
+    #print 'opts = ',opts
+    #print 'args = ',args    
+        
+        
+    for opt, arg in opts:
+        if opt == '-h':
+            usage()
+            sys.exit()
+        elif opt in ("-z", "--airmass"):
+            airmass_str = arg
+        elif opt in ("-w", "--pwv"):
+            pwv_str = arg
+        elif opt in ("-o", "--oz"):
+            oz_str = arg  
+        else:
+            print 'Do not understand arguments : ',argv
+            
+         
+    print '--------------------------------------------'     
+    print '1) airmass = ', airmass_str
+    print '1) pwv = ', pwv_str
+    print "1) oz = ", oz_str
+    print '--------------------------------------------' 
+
+    if airmass_str=="":
+        usage()
+        sys.exit()
+
+    if pwv_str=="":
+        usage()
+        sys.exit()
+
+    if oz_str=="":
+        usage()
+        sys.exit()
+        
+	
+	
+    airmass_num=float(airmass_str)
+    pwv_num=float(pwv_str)
+    oz_num=float(oz_str)	
+    
+    if airmass_num<1 or airmass_num >3 :
+        print "bad airmass value z=",airmass_num
+        sys.exit()
+        
+    if pwv_num<0 or pwv_num >50 :
+        print "bad PWV value pwv=",pwv_num
+        sys.exit()
+        
+    if oz_num<0 or oz_num >600 :
+        print "bad Ozone value oz=",oz_num
+        sys.exit()
+        
+    # do the simulation now    
+    
+    path, outputfile=ProcessSimulation(airmass_num,pwv_num,oz_num)
+    
+    print '*****************************************************'
+    print ' path       = ', path
+    print ' outputfile =  ', outputfile 
+    print '*****************************************************'
+       
+   
