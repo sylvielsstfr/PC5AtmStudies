@@ -73,7 +73,7 @@ def usage():
 #-----------------------------------------------------------------------------
 
 
-def ProcessSimulation(irmass_num,pwv_num,oz_num):    
+def ProcessSimulation(airmass_num,pwv_num,oz_num):    
     
     
     print '--------------------------------------------'
@@ -328,25 +328,25 @@ if __name__ == "__main__":
         
 	
 	
-    airmass_num=float(airmass_str)
-    pwv_num=float(pwv_str)
-    oz_num=float(oz_str)	
+    airmass_nb=float(airmass_str)
+    pwv_nb=float(pwv_str)
+    oz_nb=float(oz_str)	
     
-    if airmass_num<1 or airmass_num >3 :
-        print "bad airmass value z=",airmass_num
+    if airmass_nb<1 or airmass_nb >3 :
+        print "bad airmass value z=",airmass_nb
         sys.exit()
         
-    if pwv_num<0 or pwv_num >50 :
-        print "bad PWV value pwv=",pwv_num
+    if pwv_nb<0 or pwv_nb >50 :
+        print "bad PWV value pwv=",pwv_nb
         sys.exit()
         
-    if oz_num<0 or oz_num >600 :
-        print "bad Ozone value oz=",oz_num
+    if oz_nb<0 or oz_nb >600 :
+        print "bad Ozone value oz=",oz_nb
         sys.exit()
         
     # do the simulation now    
     
-    path, outputfile=ProcessSimulation(airmass_num,pwv_num,oz_num)
+    path, outputfile=ProcessSimulation(airmass_nb,pwv_nb,oz_nb)
     
     print '*****************************************************'
     print ' path       = ', path
