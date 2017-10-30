@@ -25,13 +25,13 @@ import UVspec
 
 # LibRadTran installation directory
 home = os.environ['HOME']+'/'       
-libradtranpath = os.getenv('LIBRADTRANDIR')
+libradtranpath = os.getenv('LIBRADTRANDIR')+'/'
 
 # Filename : RT_LS_pp_us_sa_rt_z15_wv030_oz30.txt
 #          : Prog_Obs_Rte_Atm_proc_Mod_zXX_wv_XX_oz_XX
   
 Prog='RT'  #definition the simulation programm is libRadTran
-Obs='CT'   # definition of observatory site (LS,CT,OH,MK,...)
+Obs='LS'   # definition of observatory site (LS,CT,OH,MK,...)
 Rte='pp'   # pp for parallel plane of ps for pseudo-spherical
 Atm=['us']   # short name of atmospheric sky here US standard and  Subarctic winter
 Proc='sa'  # light interaction processes : sc for pure scattering,ab for pure absorption
@@ -46,7 +46,7 @@ OZXX='oz'      # XX index for OZ        :   XX=int(oz/10)
 CTIO_Altitude = 2.200  # in k meters from astropy package (Cerro Pachon)
 OBS_Altitude = str(CTIO_Altitude)
 
-TOPDIR='simulations/RT/2.0.1/CT'
+TOPDIR='simulations/RT/2.0.1/LS'
 
 
 
@@ -68,14 +68,63 @@ def usage():
     print "*******************************************************************"
     
     
+#####################################################################
+# The program simulation start here
+#
+####################################################################
 
+def main(argv):
+    airmass_str=""
+    pwv_str=""
+    oz_str=""
+    try:
+        opts, args = getopt.getopt(argv,"hz:w:o:",["am=","pwv=","oz="])
+    except getopt.GetoptError:
+        print 'test.py -z <airmass> -w <pwv> -o <oz>'
+        sys.exit(2)
+        
+    for opt, arg in opts:
+        if opt == '-h':
+            usage()
+            sys.exit()
+        elif opt in ("-z", "--airmass"):
+            airmass_str = arg
+        elif opt in ("-w", "--pwv"):
+            pwv_str = arg
+        elif opt in ("-o", "--oz"):
+            oz_str = arg   
+         
+    print '--------------------------------------------'     
+    print '1) airmass = ', airmass_str
+    print '1) pwv = ', pwv_str
+    print "1) oz = ", oz_str
+    print '--------------------------------------------' 
+
+    if airmass_str=="":
+        usage()
+        sys.exit()
+
+    if pwv_str=="":
+        usage()
+        sys.exit()
+
+    if oz_str=="":
+        usage()
+        sys.exit()
+	
+	
+	
+ 
+    #if airmass_str=="" | pwv_str=="" | oz_str=="":
+    #    usage()
+    #	sys.exit()
+
+    return float(airmass_str),float(pwv_str),float(oz_str)	
  
 #-----------------------------------------------------------------------------
+if __name__ == "__main__":
 
-
-def ProcessSimulation(airmass_num,pwv_num,oz_num):    
-    
-    
+    airmass_num,pwv_num,oz_num=main(sys.argv[1:])
     print '--------------------------------------------'
     print ' 2) airmass = ', airmass_num
     print ' 2) pwv = ', pwv_num
@@ -266,91 +315,5 @@ def ProcessSimulation(airmass_num,pwv_num,oz_num):
         uvspec.run(inp,out,verbose,path=libradtranpath)
         
         
-    return OUTPUTDIR,outputFilename
+ 
 
-#---------------------------------------------------------------------------
-#####################################################################
-# The program simulation start here
-#
-####################################################################
-
-if __name__ == "__main__":
-    
-    
-    airmass_str=""
-    pwv_str=""
-    oz_str=""
-    
-    
-    try:
-        opts, args = getopt.getopt(sys.argv[1:],"hz:w:o:",["z=","w=","o="])
-    except getopt.GetoptError:
-        print ' Exception bad getopt with :: '+sys.argv[0]+ ' -z <airmass> -w <pwv> -o <oz>'
-        sys.exit(2)
-        
-        
-        
-    #print 'opts = ',opts
-    #print 'args = ',args    
-        
-        
-    for opt, arg in opts:
-        if opt == '-h':
-            usage()
-            sys.exit()
-        elif opt in ("-z", "--airmass"):
-            airmass_str = arg
-        elif opt in ("-w", "--pwv"):
-            pwv_str = arg
-        elif opt in ("-o", "--oz"):
-            oz_str = arg  
-        else:
-            print 'Do not understand arguments : ',argv
-            
-         
-    print '--------------------------------------------'     
-    print '1) airmass = ', airmass_str
-    print '1) pwv = ', pwv_str
-    print "1) oz = ", oz_str
-    print '--------------------------------------------' 
-
-    if airmass_str=="":
-        usage()
-        sys.exit()
-
-    if pwv_str=="":
-        usage()
-        sys.exit()
-
-    if oz_str=="":
-        usage()
-        sys.exit()
-        
-	
-	
-    airmass_nb=float(airmass_str)
-    pwv_nb=float(pwv_str)
-    oz_nb=float(oz_str)	
-    
-    if airmass_nb<1 or airmass_nb >3 :
-        print "bad airmass value z=",airmass_nb
-        sys.exit()
-        
-    if pwv_nb<0 or pwv_nb >50 :
-        print "bad PWV value pwv=",pwv_nb
-        sys.exit()
-        
-    if oz_nb<0 or oz_nb >600 :
-        print "bad Ozone value oz=",oz_nb
-        sys.exit()
-        
-    # do the simulation now    
-    
-    path, outputfile=ProcessSimulation(airmass_nb,pwv_nb,oz_nb)
-    
-    print '*****************************************************'
-    print ' path       = ', path
-    print ' outputfile =  ', outputfile 
-    print '*****************************************************'
-       
-   
