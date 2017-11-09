@@ -1,50 +1,37 @@
-# LSSTFiltersKG
-===============
+# PC5AtmStudies/LSSTFiltersKG/ README.md
+===========================================================
 
-- Author :Sylvie Dagoret-Campagne
-- affilication : LAL/IN2P3/CNRS
-- date : May 27th 2017
-
-Official LSST transmission including
-- Filters
-- Throughput
-- CCD QE
-Courteousy Kirk Gilmore, SLAC 
+* Author : Sylvie Dagoret-Campagne
+* affiliation : LAL/IN2P3/CNRS
+* Creation date : July 2017
 
 
-# Standalone python script
--------------------------
-ReadIdealFilters.py
+Notebook to open files containing Optical Throughput, Quantum efficciency and LSST.
+The info on this data have been given to me by Kirk Gilmore. In principle, these
+data are the official ones.
 
-do
-python ReadIdealFilters.py
-or
-ipython ReadIdealFilters.py
-
-It should show now the plot on your screen.
-
-notice the matplotlib config file "matplotlibrc" is inside  LSSTFiltersKG
-directory
+The notebook are just example how to open those files.
+This is a preparation of more complete libraries.
 
 
-# ipython notebooks
--------------------
+## directories and files
 
-do :
-ipython notebook
+fdata : directroy containing datafiles			   
+## notebooks
 
-and you shoud see the notebook list
+The task of the notebooks are in their names.
+The purpose is to check that what is read is what one expect.
 
-## ReadIdealFilters.ipynb
--------------------------
+* ReadFilterThroughputAndCCDQE.ipynb  
+* ReadIdealFilters.py  
+* ReadMirrors.ipynb
+* ReadIdealFilters.ipynb
+* ReadThroughputCCD.ipynb
 
-Example of notebook to read only filters (ascii file)
+#others
 
 
-## ReadThroughputCCD.ipynb
---------------------------
-Example to read throughput and CCD (excel file)
+lsst_mirrorthroughput.txt  matplotlibrc		  	      README.md		   
 
-## ReadFilterThroughputAndCCDQE.ipynb
--------------------------------------
-Example to read  both filters and CCD and Throughput
+
+
