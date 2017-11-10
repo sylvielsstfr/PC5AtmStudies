@@ -63,8 +63,6 @@ def usage():
     print sys.argv[0],' -z <airmass> -w <pwv> -o <oz>'
     print 'Number of arguments:', len(sys.argv), 'arguments.'
     print 'Argument List:', str(sys.argv)
-    
-    
     print "*******************************************************************"
     
     
@@ -125,6 +123,8 @@ def main(argv):
 if __name__ == "__main__":
 
     airmass_num,pwv_num,oz_num=main(sys.argv[1:])
+    
+    
     print '--------------------------------------------'
     print ' 2) airmass = ', airmass_num
     print ' 2) pwv = ', pwv_num
@@ -295,7 +295,7 @@ if __name__ == "__main__":
         uvspec.inp["phi0"]       = '0'
         uvspec.inp["wavelength"]       = '250.0 1200.0'
         uvspec.inp["output_quantity"] = 'reflectivity' #'transmittance' #
-#       uvspec.inp["verbose"] = ''
+#        uvspec.inp["verbose"] = ''
         uvspec.inp["quiet"] = ''
 
   

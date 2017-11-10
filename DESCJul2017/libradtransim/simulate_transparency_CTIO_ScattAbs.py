@@ -295,8 +295,8 @@ if __name__ == "__main__":
         uvspec.inp["phi0"]       = '0'
         uvspec.inp["wavelength"]       = '250.0 1200.0'
         uvspec.inp["output_quantity"] = 'reflectivity' #'transmittance' #
-        uvspec.inp["verbose"] = ''
-#        uvspec.inp["quiet"] = ''
+#        uvspec.inp["verbose"] = ''
+        uvspec.inp["quiet"] = ''
 
   
 
