@@ -63,72 +63,23 @@ def usage():
     print sys.argv[0],' -z <airmass> -w <pwv> -o <oz>'
     print 'Number of arguments:', len(sys.argv), 'arguments.'
     print 'Argument List:', str(sys.argv)
+    
+    
     print "*******************************************************************"
     
     
-#####################################################################
-# The program simulation start here
-#
-####################################################################
 
-def main(argv):
-    airmass_str=""
-    pwv_str=""
-    oz_str=""
-    try:
-        opts, args = getopt.getopt(argv,"hz:w:o:",["am=","pwv=","oz="])
-    except getopt.GetoptError:
-        print 'test.py -z <airmass> -w <pwv> -o <oz>'
-        sys.exit(2)
-        
-    for opt, arg in opts:
-        if opt == '-h':
-            usage()
-            sys.exit()
-        elif opt in ("-z", "--airmass"):
-            airmass_str = arg
-        elif opt in ("-w", "--pwv"):
-            pwv_str = arg
-        elif opt in ("-o", "--oz"):
-            oz_str = arg   
-         
-    print '--------------------------------------------'     
-    print '1) airmass = ', airmass_str
-    print '1) pwv = ', pwv_str
-    print "1) oz = ", oz_str
-    print '--------------------------------------------' 
-
-    if airmass_str=="":
-        usage()
-        sys.exit()
-
-    if pwv_str=="":
-        usage()
-        sys.exit()
-
-    if oz_str=="":
-        usage()
-        sys.exit()
-	
-	
-	
- 
-    #if airmass_str=="" | pwv_str=="" | oz_str=="":
-    #    usage()
-    #	sys.exit()
-
-    return float(airmass_str),float(pwv_str),float(oz_str)	
  
 #-----------------------------------------------------------------------------
-if __name__ == "__main__":
 
-    airmass_num,pwv_num,oz_num=main(sys.argv[1:])
+
+def ProcessSimulation(airmass_num,pwv_num,oz_num):    
     
     
     print '--------------------------------------------'
-    print ' 2) airmass = ', airmass_num
+    print ' 1) airmass = ', airmass_num
     print ' 2) pwv = ', pwv_num
-    print ' 2) oz = ', oz_num
+    print ' 3) oz = ', oz_num
     print '--------------------------------------------'    
    
     
@@ -275,6 +226,7 @@ if __name__ == "__main__":
         if runtype=='aerosol_default':
             uvspec.inp["aerosol_default"] = ''
         elif runtype=='aerosol_special':
+            uvspec.inp["aerosol_default"] = ''
             uvspec.inp["aerosol_set_tau_at_wvl"] = '500 0.02'
                         
         if runtype=='no_scattering':
@@ -295,7 +247,7 @@ if __name__ == "__main__":
         uvspec.inp["phi0"]       = '0'
         uvspec.inp["wavelength"]       = '250.0 1200.0'
         uvspec.inp["output_quantity"] = 'reflectivity' #'transmittance' #
-#        uvspec.inp["verbose"] = ''
+#       uvspec.inp["verbose"] = ''
         uvspec.inp["quiet"] = ''
 
   
@@ -309,12 +261,97 @@ if __name__ == "__main__":
         outputFilename=BaseFilename+'.OUT'
         inp=os.path.join(INPUTDIR,inputFilename)
         out=os.path.join(OUTPUTDIR,outputFilename)
-               
-     
+                    
             
         uvspec.write_input(inp)
         uvspec.run(inp,out,verbose,path=libradtranpath)
         
         
- 
+    return OUTPUTDIR,outputFilename
 
+#---------------------------------------------------------------------------
+#####################################################################
+# The program simulation start here
+#
+####################################################################
+
+if __name__ == "__main__":
+    
+    
+    airmass_str=""
+    pwv_str=""
+    oz_str=""
+    
+    
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"hz:w:o:",["z=","w=","o="])
+    except getopt.GetoptError:
+        print ' Exception bad getopt with :: '+sys.argv[0]+ ' -z <airmass> -w <pwv> -o <oz>'
+        sys.exit(2)
+        
+        
+        
+    #print 'opts = ',opts
+    #print 'args = ',args    
+        
+        
+    for opt, arg in opts:
+        if opt == '-h':
+            usage()
+            sys.exit()
+        elif opt in ("-z", "--airmass"):
+            airmass_str = arg
+        elif opt in ("-w", "--pwv"):
+            pwv_str = arg
+        elif opt in ("-o", "--oz"):
+            oz_str = arg  
+        else:
+            print 'Do not understand arguments : ',argv
+            
+         
+    print '--------------------------------------------'     
+    print '1) airmass = ', airmass_str
+    print '2) pwv = ', pwv_str
+    print "3) oz = ", oz_str
+    print '--------------------------------------------' 
+
+    if airmass_str=="":
+        usage()
+        sys.exit()
+
+    if pwv_str=="":
+        usage()
+        sys.exit()
+
+    if oz_str=="":
+        usage()
+        sys.exit()
+        
+	
+	
+    airmass_nb=float(airmass_str)
+    pwv_nb=float(pwv_str)
+    oz_nb=float(oz_str)	
+    
+    if airmass_nb<1 or airmass_nb >3 :
+        print "bad airmass value z=",airmass_nb
+        sys.exit()
+        
+    if pwv_nb<0 or pwv_nb >50 :
+        print "bad PWV value pwv=",pwv_nb
+        sys.exit()
+        
+    if oz_nb<0 or oz_nb >600 :
+        print "bad Ozone value oz=",oz_nb
+        sys.exit()
+        
+    # do the simulation now    
+    
+    path, outputfile=ProcessSimulation(airmass_nb,pwv_nb,oz_nb)
+    
+    print '*****************************************************'
+    print ' path       = ', path
+    print ' outputfile =  ', outputfile 
+    print '*****************************************************'
+       
+   
