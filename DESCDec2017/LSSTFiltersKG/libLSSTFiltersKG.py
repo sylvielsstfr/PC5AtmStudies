@@ -16,6 +16,9 @@ import pysynphot as S
 files_idealfilters=['LSSTFiltersKG/fdata/ideal_u.txt','LSSTFiltersKG/fdata/ideal_g.txt','LSSTFiltersKG/fdata/ideal_r.txt','LSSTFiltersKG/fdata/ideal_i.txt','LSSTFiltersKG/fdata/ideal_z.txt','LSSTFiltersKG/fdata/ideal_y4.txt']
 file_lsstoptccd='LSSTFiltersKG/fdata/LSST-ThroughputCCD.xlsx'
 
+WLMIN=300.
+WLMAX=11000.
+
 #------------------------------------------------------------------------------------
 def GetFiltersTransmissions(path):
     data_u=np.loadtxt(os.path.join(path,files_idealfilters[0]),skiprows=2)
@@ -68,6 +71,10 @@ def GetThroughputAndCCDQE(path):
     throughput=np.array(data_throuthput["THROUGHPUT"])
     ccdqe=np.array(data_throuthput["CCD2"])
     trans_opt_elec=np.array(data_throuthput["THROUGHPUT"]*data_throuthput["CCD2"])
+    
+    index_to_zero=np.where(np.logical_or(wl<WLMIN,wl>WLMAX))
+    ccdqe[index_to_zero]=0
+    
     return wl,throughput,ccdqe,trans_opt_elec
 #----------------------------------------------------------------------------------
 def PlotThroughputAndCCDQE(wl,throughput,ccdqe,trans_opt_elec):
