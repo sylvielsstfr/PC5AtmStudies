@@ -12,11 +12,54 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pysynphot as S
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+import astropy.units as u
 
 filtercolor=['blue','green','red','orange','grey','black']
-WLMIN=300.
-WLMAX=12000.
+WLMIN=3000.
+WLMAX=11000.
 
+NBINS=10000
+BinWidth=(WLMAX-WLMIN)/float(NBINS)
+WL=np.linspace(WLMIN,WLMAX,NBINS)
+
+LSST_COLL_SURF=35*(u.m)**2/(u.cm)**2  # LSST collectif surface
+S.refs.setref(area=LSST_COLL_SURF.decompose(), waveset=None)
+S.refs.set_default_waveset(minwave=3000, maxwave=11000, num=8000, delta=1, log=False)
+S.refs.showref()
+
+# to enlarge the sizes
+params = {'legend.fontsize': 'x-large',
+          'figure.figsize': (6, 4),
+         'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large'}
+plt.rcParams.update(params)
+
+#---------------------------------------------------------------------------------
+def CountRate(wl,fl):
+    dlambda=BinWidth 
+    df=wl*fl*LSST_COLL_SURF/(S.units.C*S.units.H)*dlambda
+    # (erg/s/cm2/Angstrom) x (Angstrom)  x  (cm^2) / (erg . s . Angstrom /s) * Angstrom
+    # units :  s-1
+    count=df.sum()
+    return count
+#---------------------------------------------------------------------------------
+    
+#---------------------------------------------------------------------------------
+def InstrumMag(wl,fl):
+    m=-2.5*np.log10(CountRate(wl,fl))
+    return m
+#---------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------
+def ComputeColor(wl,fl1,fl2):
+    m1=InstrumMag(wl,fl1)
+    m2=InstrumMag(wl,fl2)
+    return m1-m2
+#---------------------------------------------------------------------------------
+    
 #-------------------------------------------------------------------------------------
 class Atmosphere(object):
     '''
@@ -178,7 +221,8 @@ class LSSTObservation(object):
         self.NBBANDS = 0
         self.NBEVENTS = 0
         self.NBSED = 0
-        self.array = []          # container for the product of atm x filters x SED
+        self.obsarray = []       # container for the product of atm x filters x SED
+        self.obssamplarray = []  # sampled array for magnitude calculation
         self.all_sed = []        # must be a pysynphot source
         self.all_transmission = []   # must be a pysynphot passband
         
@@ -193,48 +237,88 @@ class LSSTObservation(object):
         self.NBBANDS=len(all_transm[0])
        
     def make_observations(self):
-        if len(self.array)!=0:
-            return self.array
+        if len(self.obsarray)!=0:
+            return self.obsarray
         # loop on all SED
-        self.array=[]
+        self.obsarray=[]
         for sed in self.all_sed:
             # loop on atmospheric events
             all_obs_persed=[]
             for transmission in self.all_transmission:
-                print transmission
                 all_obs_perevent= []
                 #loop on all bands
                 for band in transmission:
                     obs= S.Observation(sed,band)   # do OBS = SED x Transmission
                     all_obs_perevent.append(obs)
                 all_obs_persed.append(all_obs_perevent)
-            self.array.append(all_obs_persed)
-        return self.array
+            self.obsarray.append(all_obs_persed)
+        return self.obsarray
     
     def get_observations(self):
-        if len(self.array) ==0:
+        if len(self.obsarray) ==0:
             return self.make_observations()
         else:
-            return self.array
+            return self.obsarray
         
     def plot_observations(self,sednum):
-        if len(self.array) ==0:
+        if len(self.obsarray) ==0:
             self.make_observations()
             
         if (sednum>=0 and sednum <self.NBSED):
-            theobservation=self.array[sednum]
+            theobservation=self.obsarray[sednum]
             for event in np.arange(self.NBEVENTS):
                 all_bands=theobservation[event]
                 ib=0
                 for bp in all_bands:
                     plt.plot(bp.wave,bp.flux,color=filtercolor[ib])
                     ib+=1
-            plt.title("all observation")
+            plt.title("all observations")
             plt.xlabel( '$\lambda$ (Angstrom)')
             plt.ylabel('flux')
             plt.grid()
             plt.xlim(WLMIN,WLMAX)
-
+            
+    def make_samplobservations(self):
+        '''
+        Resample the flux with equi-width bins
+        '''
+        if len(self.obssamplarray)!=0:
+            return self.obssamplarray
+        
+        self.obssamplarray=[]                  # output contaioner
+        for sedsource in self.obsarray:        # loop on input SED sources
+            # loop on atmospheric events
+            all_obssampl_persedsource=[]
+            for obs_per_event in sedsource:    # loop on all event for that sed             
+                all_obssampl_bands= []
+                #loop on all bands
+                for obsband in obs_per_event:  # loop on bands
+                    # do interpolation
+                    func=interp1d(obsband.wave,obsband.flux,kind='cubic')
+                    flux=func(WL)
+                    all_obssampl_bands.append(flux) # save the band
+                all_obssampl_persedsource.append(all_obssampl_bands) # save that event   
+            self.obssamplarray.append(all_obssampl_persedsource) # save all the event for that sed
+        return self.obssamplarray
+    
+    def plot_samplobservations(self,sednum):
+        if len(self.obssamplarray) ==0:
+            self.make_samplobservations()
+            
+        if (sednum>=0 and sednum <self.NBSED):
+            theobservation=self.obssamplarray[sednum]
+            for event in np.arange(self.NBEVENTS):
+                all_bands=theobservation[event]
+                ib=0
+                for flux in all_bands:
+                    plt.plot(WL,flux,color=filtercolor[ib])
+                    ib+=1
+            plt.title("all sampled observations")
+            plt.xlabel( '$\lambda$ (Angstrom)')
+            plt.ylabel('flux')
+            plt.grid()
+            plt.xlim(WLMIN,WLMAX)
+ 
 #-----------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------------
