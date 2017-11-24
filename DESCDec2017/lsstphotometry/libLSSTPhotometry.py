@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import astropy.units as u
 
+NBBANDS=6
+band_to_number={'u':0,'g':1,'r':2,'i':3,'z':4,'y4':5}
 filtercolor=['blue','green','red','orange','grey','black']
 WLMIN=3000.
 WLMAX=11000.
@@ -30,7 +32,7 @@ S.refs.showref()
 
 # to enlarge the sizes
 params = {'legend.fontsize': 'x-large',
-          'figure.figsize': (6, 4),
+          'figure.figsize': (12, 8),
          'axes.labelsize': 'x-large',
          'axes.titlesize':'x-large',
          'xtick.labelsize':'x-large',
@@ -135,9 +137,9 @@ class Atmosphere(object):
         for bp in self.pys_pb:
             plt.plot(bp.wave,bp.throughput)
         plt.grid()
-        plt.title("Atmosphere sim")
-        plt.xlabel("$\lambda$ (Angstrom)")
-        plt.ylabel("transmission")
+        plt.title("Atmosphere sim",weight="bold")
+        plt.xlabel("$\lambda$ (Angstrom)",weight="bold")
+        plt.ylabel("transmission",weight="bold")
         plt.savefig("atm-transm.png")
         
         
@@ -200,9 +202,9 @@ class LSSTTransmission(object):
             for bp in all_bands:
                 plt.plot(bp.wave,bp.throughput,color=filtercolor[ib])
                 ib+=1
-        plt.title("all transmissions")
-        plt.xlabel( '$\lambda$ (Angstrom)')
-        plt.ylabel('transmission')
+        plt.title("all transmissions",weight="bold")
+        plt.xlabel( '$\lambda$ (Angstrom)',weight="bold")
+        plt.ylabel('transmission',weight="bold")
         plt.grid()
             
 #------------------------------------------------------------------------------------        
@@ -217,15 +219,16 @@ class LSSTObservation(object):
     
     '''
     def __init__(self,name):
-        self.name = name
-        self.NBBANDS = 0
-        self.NBEVENTS = 0
-        self.NBSED = 0
+        self.name = name        # name given to the instance
+        self.NBBANDS = 0        # number of bands
+        self.NBEVENTS = 0       # number of different atmosphere called events
+        self.NBSED = 0          # number of different input SED
         self.obsarray = []       # container for the product of atm x filters x SED
         self.obssamplarray = []  # sampled array for magnitude calculation
         self.all_sed = []        # must be a pysynphot source
         self.all_transmission = []   # must be a pysynphot passband
-        
+        self.counts = []         # number of counts
+        self.magnitude = []     # instrumental magnitude
         
     def fill_sed(self,all_sed):
         self.all_sed= all_sed
@@ -263,7 +266,7 @@ class LSSTObservation(object):
     def plot_observations(self,sednum):
         if len(self.obsarray) ==0:
             self.make_observations()
-            
+        plt.figure()   
         if (sednum>=0 and sednum <self.NBSED):
             theobservation=self.obsarray[sednum]
             for event in np.arange(self.NBEVENTS):
@@ -272,9 +275,9 @@ class LSSTObservation(object):
                 for bp in all_bands:
                     plt.plot(bp.wave,bp.flux,color=filtercolor[ib])
                     ib+=1
-            plt.title("all observations")
-            plt.xlabel( '$\lambda$ (Angstrom)')
-            plt.ylabel('flux')
+            plt.title("all observations",weight="bold")
+            plt.xlabel('$\lambda$ (Angstrom)',weight="bold")
+            plt.ylabel('flux',weight="bold")
             plt.grid()
             plt.xlim(WLMIN,WLMAX)
             
@@ -304,20 +307,152 @@ class LSSTObservation(object):
     def plot_samplobservations(self,sednum):
         if len(self.obssamplarray) ==0:
             self.make_samplobservations()
-            
+        plt.figure() 
+        #selection of the SED    
         if (sednum>=0 and sednum <self.NBSED):
             theobservation=self.obssamplarray[sednum]
+            #loop on event
             for event in np.arange(self.NBEVENTS):
                 all_bands=theobservation[event]
                 ib=0
+                #loop on band
                 for flux in all_bands:
                     plt.plot(WL,flux,color=filtercolor[ib])
                     ib+=1
-            plt.title("all sampled observations")
-            plt.xlabel( '$\lambda$ (Angstrom)')
-            plt.ylabel('flux')
+            plt.title("all sampled observations",weight="bold")
+            plt.xlabel( '$\lambda$ (Angstrom)',weight="bold")
+            plt.ylabel('flux',weight="bold")
             plt.grid()
             plt.xlim(WLMIN,WLMAX)
+            
+    def compute_counts(self):
+        if len(self.obssamplarray) ==0:
+            self.make_samplobservations()
+        # loop on SED  
+        self.counts=[]
+        for sed in self.obssamplarray:   
+            # loop on each event of a sed 
+            all_obs_counts = []
+            for obs in sed:
+                #loop on band
+                all_band_counts = []
+                for band in obs:
+                    counts=CountRate(WL,band) # my personnal implementation of counts
+                    all_band_counts.append(counts)
+                all_obs_counts.append(all_band_counts) 
+            self.counts.append(all_obs_counts) 
+            self.counts=np.array(self.counts)  # at the end, the array is converted in numpy
+        return self.counts
+    
+    def compute_magnitudeold(self):
+        if len(self.counts) == 0:
+            self.compute_counts()
+                # loop on SED  
+        self.magnitude=[]
+        for sed in self.counts:   
+            # loop on each event of a sed 
+            all_obs_mag = []
+            for obs in sed:
+                #loop on band
+                all_band_mag = []
+                for band_counts in obs:
+                    mag=-2.5*np.log10(band_counts)
+                    all_band_mag.append(mag)
+                all_obs_mag.append(all_band_mag) 
+            self.magnitude.append(all_obs_mag) 
+        return self.magnitude
+    
+    def compute_magnitude(self):
+        if len(self.counts) == 0:
+            self.compute_counts()
+                # loop on SED  
+        self.magnitude=-2.5*np.log10(self.counts)
+        return self.magnitude   
+    
+    
+    def plot_countsold(self,sednum):
+        if len(self.counts) == 0:
+            self.compute_counts()
+              
+        if (sednum>=0 and sednum <self.NBSED):
+            thecounts=self.counts[sednum]
+            plt.figure() 
+            for event in np.arange(self.NBEVENTS):
+                all_bands_counts=thecounts[event]
+                ib=0
+                #loop on band
+                for bandcounts in all_bands_counts:
+                    plt.plot([event],[bandcounts],'o',color=filtercolor[ib])
+                    ib+=1
+            plt.title("all counts",weight="bold")
+            plt.xlabel( 'event number',weight="bold")
+            plt.ylabel('counts',weight="bold")
+            plt.grid()
+            
+    def plot_counts(self,sednum):
+        if len(self.counts) == 0:
+            self.compute_counts()
+              
+        if (sednum>=0 and sednum <self.NBSED):
+            plt.figure() 
+            for ib in np.arange(NBBANDS):
+                plt.plot(self.counts[sednum,:,ib],'-',color=filtercolor[ib])
+            plt.title("all counts",weight="bold")
+            plt.xlabel( 'event number',weight="bold")
+            plt.ylabel('counts',weight="bold")
+            plt.grid()
+            
+    def plot_magnitudesold(self,sednum):
+        if len(self.magnitude) == 0:
+            self.compute_magnitude()
+              
+        if (sednum>=0 and sednum <self.NBSED):
+            themagnitudes=self.magnitude[sednum]
+        
+            for event in np.arange(self.NBEVENTS):
+                all_bands_mag=themagnitudes[event]
+                ib=0
+                #loop on band
+                for bandmag in all_bands_mag:
+                    plt.plot([event],[bandmag],'o',color=filtercolor[ib])
+                    ib+=1
+            plt.title("all instrumental magnitudes",weight="bold")
+            plt.xlabel( 'event number',weight="bold")
+            plt.ylabel('magnitude',weight="bold")
+            plt.grid()
+            
+    def plot_magnitudes(self,sednum):
+        if len(self.magnitude) == 0:
+            self.compute_magnitude()
+              
+        if (sednum>=0 and sednum <self.NBSED):
+            plt.figure()
+            for ib in np.arange(NBBANDS):
+                plt.plot(self.magntitudes[sednum,:,ib],'-',color=filtercolor[ib])
+            plt.title("all instrumental magnitudes",weight="bold")
+            plt.xlabel( 'event number',weight="bold")
+            plt.ylabel('magnitude',weight="bold")
+            plt.grid()
+            
+    def get_magnitudeforfilternum(self,sednum,filternum):
+        if len(self.magnitude) == 0:
+            self.compute_magnitude()
+            
+        if (sednum>=0 and sednum <self.NBSED): 
+            return self.magnitude[sednum,:,filternum]
+        else:
+            return None
+        
+    def get_magnitudeforfiltername(self,sednum,filtername):
+        if len(self.magnitude) == 0:
+            self.compute_magnitude()
+            
+        filternum=band_to_number[filtername]
+        if (sednum>=0 and sednum <self.NBSED):        
+            return self.get_magnitudeforfilternum(sednum,filternum)
+        else:
+            return None
+            
  
 #-----------------------------------------------------------------------------------------------
 
