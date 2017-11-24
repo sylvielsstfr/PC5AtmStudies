@@ -50,16 +50,16 @@ def GetFiltersTransmissions(path):
 #---------------------------------------------------------------------------------
 def PlotFiltersTransmissions(wl_u,u,wl_g,g,wl_r,r,wl_i,i,wl_z,z,wl_y4,y4):
     plt.figure()
-    plt.plot(wl_u,u,'b-')
-    plt.plot(wl_g,g,'g-')
-    plt.plot(wl_r,r,'r-')
-    plt.plot(wl_i,i,'y-')
-    plt.plot(wl_z,z,'k-')
-    plt.plot(wl_y4,y4,'-',color='grey')
+    plt.plot(wl_u,u,'b-',lw=2)
+    plt.plot(wl_g,g,'g-',lw=2)
+    plt.plot(wl_r,r,'r-',lw=2)
+    plt.plot(wl_i,i,'y-',lw=2)
+    plt.plot(wl_z,z,color='grey',lw=2)
+    plt.plot(wl_y4,y4,'-',color='black',lw=2)
     plt.grid()
-    plt.title("Ideal Filters LSST")
-    plt.xlabel("wavelength (nm)")
-    plt.ylabel("transmission")
+    plt.title("Ideal Filters LSST",weight='bold')
+    plt.xlabel("wavelength (nm)",weight='bold')
+    plt.ylabel("transmission",weight='bold')
 #---------------------------------------------------------------------------------
 
 
@@ -79,13 +79,13 @@ def GetThroughputAndCCDQE(path):
 #----------------------------------------------------------------------------------
 def PlotThroughputAndCCDQE(wl,throughput,ccdqe,trans_opt_elec):
     plt.figure()
-    plt.plot(wl,throughput,'b-',label='throughput')
-    plt.plot(wl,ccdqe,'r-',label='CCD-QE')
-    plt.plot(wl,trans_opt_elec,'k-',label='Comb')
+    plt.plot(wl,throughput,'b-',label='throughput',lw=2)
+    plt.plot(wl,ccdqe,'r-',label='CCD-QE',lw=2)
+    plt.plot(wl,trans_opt_elec,'k-',label='Comb',lw=2)
     plt.grid()
-    plt.title("LSST Throughput and CCD QE")
-    plt.xlabel("wavelength")
-    plt.ylabel("transmission")
+    plt.title("LSST Throughput and CCD QE",weight='bold')
+    plt.xlabel("wavelength",weight='bold')
+    plt.ylabel("transmission",weight='bold')
     plt.legend()
 #---------------------------------------------------------------------------------
 
@@ -105,16 +105,16 @@ def GetAllLSSTTransmissions(path):
 
 def PlotAllLSSTTransmissions(wl_u,tot_u,wl_g,tot_g,wl_r,tot_r,wl_i,tot_i,wl_z,tot_z,wl_y4,tot_y4):
     plt.figure()
-    plt.plot(wl_u,tot_u,'b-')
-    plt.plot(wl_g,tot_g,'g-')
-    plt.plot(wl_r,tot_r,'r-')
-    plt.plot(wl_i,tot_i,'y-')
-    plt.plot(wl_z,tot_z,'k-')
-    plt.plot(wl_y4,tot_y4,'-',color='grey')
+    plt.plot(wl_u,tot_u,'b-',lw=2)
+    plt.plot(wl_g,tot_g,'g-',lw=2)
+    plt.plot(wl_r,tot_r,'r-',lw=2)
+    plt.plot(wl_i,tot_i,'y-',lw=2)
+    plt.plot(wl_z,tot_z,color='grey',lw=2)
+    plt.plot(wl_y4,tot_y4,'-',color='black',lw=2)
     plt.grid()
-    plt.title("Total transmission LSST (no atm)")
-    plt.xlabel("wavelength (nm)")
-    plt.ylabel("transmission")
+    plt.title("Total transmission LSST (no atm)",weight='bold')
+    plt.xlabel("wavelength (nm)",weight='bold')
+    plt.ylabel("transmission",weight='bold')
     plt.savefig("lsst-total-transm.png")
 #----------------------------------------------------------------------------------------------
 
@@ -133,17 +133,17 @@ def GetAllLSSTBands(path):
 #----------------------------------------------------------------------------------------------
 def PlotAllLSSTBands(bp_u,bp_g,bp_r,bp_i,bp_z,bp_y4):
     plt.figure()
-    plt.plot(bp_u.wave, bp_u.throughput, 'b')
-    plt.plot(bp_g.wave, bp_g.throughput, 'g')
-    plt.plot(bp_r.wave, bp_r.throughput, 'r')
-    plt.plot(bp_i.wave, bp_i.throughput, 'y')
-    plt.plot(bp_z.wave, bp_z.throughput, color='grey')
-    plt.plot(bp_y4.wave, bp_y4.throughput,'k')
+    plt.plot(bp_u.wave, bp_u.throughput, 'b',lw=2)
+    plt.plot(bp_g.wave, bp_g.throughput, 'g',lw=2)
+    plt.plot(bp_r.wave, bp_r.throughput, 'r',lw=2)
+    plt.plot(bp_i.wave, bp_i.throughput, 'y',lw=2)
+    plt.plot(bp_z.wave, bp_z.throughput, color='grey',lw=2)
+    plt.plot(bp_y4.wave, bp_y4.throughput,'k',lw=2)
     plt.ylim(0, 1.)
     plt.grid()
-    plt.title("Total transmission LSST (no atm) with PySynPhot")
-    plt.xlabel(bp_u.waveunits)
-    plt.ylabel('throughput')
+    plt.title("Total transmission LSST (no atm) with PySynPhot",weight='bold')
+    plt.xlabel(bp_u.waveunits,weight='bold')
+    plt.ylabel('throughput',weight='bold')
     plt.legend([bp_u.name, bp_g.name,bp_r.name, bp_i.name,bp_z.name, bp_y4.name], loc=1,fontsize=9)
 
 #---------------------------------------------------------------------------------

@@ -135,7 +135,7 @@ class Atmosphere(object):
             
         plt.figure()
         for bp in self.pys_pb:
-            plt.plot(bp.wave,bp.throughput)
+            plt.plot(bp.wave,bp.throughput,lw=2)
         plt.grid()
         plt.title("Atmosphere sim",weight="bold")
         plt.xlabel("$\lambda$ (Angstrom)",weight="bold")
@@ -200,7 +200,7 @@ class LSSTTransmission(object):
             all_bands=self.array[event]
             ib=0
             for bp in all_bands:
-                plt.plot(bp.wave,bp.throughput,color=filtercolor[ib])
+                plt.plot(bp.wave,bp.throughput,color=filtercolor[ib],lw=2)
                 ib+=1
         plt.title("all transmissions",weight="bold")
         plt.xlabel( '$\lambda$ (Angstrom)',weight="bold")
@@ -273,7 +273,7 @@ class LSSTObservation(object):
                 all_bands=theobservation[event]
                 ib=0
                 for bp in all_bands:
-                    plt.plot(bp.wave,bp.flux,color=filtercolor[ib])
+                    plt.plot(bp.wave,bp.flux,color=filtercolor[ib],lw=2)
                     ib+=1
             plt.title("all observations",weight="bold")
             plt.xlabel('$\lambda$ (Angstrom)',weight="bold")
@@ -317,7 +317,7 @@ class LSSTObservation(object):
                 ib=0
                 #loop on band
                 for flux in all_bands:
-                    plt.plot(WL,flux,color=filtercolor[ib])
+                    plt.plot(WL,flux,color=filtercolor[ib],lw=2)
                     ib+=1
             plt.title("all sampled observations",weight="bold")
             plt.xlabel( '$\lambda$ (Angstrom)',weight="bold")
@@ -396,7 +396,7 @@ class LSSTObservation(object):
         if (sednum>=0 and sednum <self.NBSED):
             plt.figure() 
             for ib in np.arange(NBBANDS):
-                plt.plot(self.counts[sednum,:,ib],'-',color=filtercolor[ib])
+                plt.plot(self.counts[sednum,:,ib],'-',color=filtercolor[ib],lw=2)
             plt.title("all counts",weight="bold")
             plt.xlabel( 'event number',weight="bold")
             plt.ylabel('counts',weight="bold")
@@ -428,7 +428,7 @@ class LSSTObservation(object):
         if (sednum>=0 and sednum <self.NBSED):
             plt.figure()
             for ib in np.arange(NBBANDS):
-                plt.plot(self.magntitudes[sednum,:,ib],'-',color=filtercolor[ib])
+                plt.plot(self.magnitude[sednum,:,ib],'-',color=filtercolor[ib],lw=2)
             plt.title("all instrumental magnitudes",weight="bold")
             plt.xlabel( 'event number',weight="bold")
             plt.ylabel('magnitude',weight="bold")
