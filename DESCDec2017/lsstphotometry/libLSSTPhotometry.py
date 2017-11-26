@@ -231,6 +231,9 @@ class LSSTObservation(object):
         self.counts = []         # number of counts
         self.magnitude = []     # instrumental magnitude
         
+    def get_NBSED(self):
+        return self.NBSED
+        
     def fill_sed(self,all_sed):
         self.all_sed= all_sed
         self.NBSED=len(all_sed)
@@ -252,7 +255,8 @@ class LSSTObservation(object):
                 all_obs_perevent= []
                 #loop on all bands
                 for band in transmission:
-                    obs= S.Observation(sed,band)   # do OBS = SED x Transmission
+                    # force=[extrap|taper]
+                    obs= S.Observation(sed,band,force='taper')   # do OBS = SED x Transmission
                     all_obs_perevent.append(obs)
                 all_obs_persed.append(all_obs_perevent)
             self.obsarray.append(all_obs_persed)
@@ -266,6 +270,8 @@ class LSSTObservation(object):
         
     def plot_observations(self,sednum):
         if len(self.obsarray) ==0:
+            print 'plot_observations :: len(self.obsarray) = ',len(self.obsarray)
+            print ' plot_observations :: ==> self.make_observations()'
             self.make_observations()
         plt.figure()   
         if (sednum>=0 and sednum <self.NBSED):
@@ -307,6 +313,8 @@ class LSSTObservation(object):
     
     def plot_samplobservations(self,sednum):
         if len(self.obssamplarray) ==0:
+            print 'plot_samplobservations :: len(self.obssamplarray) = ',len(self.obssamplarray)
+            print ' plot_samplobservations :: ==> self.make_samplobservations()'
             self.make_samplobservations()
         plt.figure() 
         #selection of the SED    
@@ -328,6 +336,8 @@ class LSSTObservation(object):
             
     def compute_counts(self):
         if len(self.obssamplarray) ==0:
+            print 'compute_counts :: len(self.obssamplarray) = ',len(self.obssamplarray)
+            print 'compute_counts :: ==> self.make_samplobservations()'
             self.make_samplobservations()
         # loop on SED  
         self.counts=[]
@@ -342,7 +352,7 @@ class LSSTObservation(object):
                     all_band_counts.append(counts)
                 all_obs_counts.append(all_band_counts) 
             self.counts.append(all_obs_counts) 
-            self.counts=np.array(self.counts)  # at the end, the array is converted in numpy
+        self.counts=np.array(self.counts)  # at the end, the array is converted in numpy array
         return self.counts
     
     def compute_magnitudeold(self):
@@ -365,6 +375,8 @@ class LSSTObservation(object):
     
     def compute_magnitude(self):
         if len(self.counts) == 0:
+            print 'compute_magnitude :: len(self.counts) = ',self.counts
+            print 'compute_magnitude :: ==> self.counts()'
             self.compute_counts()
                 # loop on SED  
         self.magnitude=-2.5*np.log10(self.counts)
