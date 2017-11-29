@@ -256,7 +256,7 @@ class LSSTObservation(object):
                 #loop on all bands
                 for band in transmission:
                     # force=[extrap|taper]
-                    obs= S.Observation(sed,band,force='taper')   # do OBS = SED x Transmission
+                    obs= S.Observation(sed,band,force='extrap')   # do OBS = SED x Transmission
                     all_obs_perevent.append(obs)
                 all_obs_persed.append(all_obs_perevent)
             self.obsarray.append(all_obs_persed)
@@ -267,6 +267,16 @@ class LSSTObservation(object):
             return self.make_observations()
         else:
             return self.obsarray
+
+    def get_observationsforSED(self,sednum):
+        if len(self.obsarray) ==0:
+            self.make_observations()
+    
+        if (sednum>=0 and sednum <self.NBSED):
+            return self.obsarray[sednum]
+        else:
+            print 'get_observationsforSED :: bad SED number',sednum
+            return None
         
     def plot_observations(self,sednum):
         if len(self.obsarray) ==0:
@@ -310,6 +320,16 @@ class LSSTObservation(object):
                 all_obssampl_persedsource.append(all_obssampl_bands) # save that event   
             self.obssamplarray.append(all_obssampl_persedsource) # save all the event for that sed
         return self.obssamplarray
+    
+    def get_samplobservationsforSED(self,sednum):
+        if len(self.obssamplarray) ==0:
+            self.make_samplobservations()
+    
+        if (sednum>=0 and sednum <self.NBSED):
+            return self.obssamplarray[sednum]
+        else:
+            print 'get_samplobservationsforSED :: bad SED number',sednum
+            return None
     
     def plot_samplobservations(self,sednum):
         if len(self.obssamplarray) ==0:
