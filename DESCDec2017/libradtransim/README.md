@@ -20,8 +20,9 @@ Simulate scattering , absorption and also aerosols
 
 # notebooks to check how aerosols are simulated in libradtran
 
-- ScanAerosols.ipynb				 
-- ScanAerosols2.ipynb
+- ScanAerosols.ipynb  : default aerosol config in libradtran				 
+- ScanAerosols2.ipynb : tunable formula config in libdradtran , tau = beta*(wl0/wl)^alpha
+- ScanAerosols3.ipynb : user analytic formula for aerosols defined by me
 
 
 # python tool for libradtran
