@@ -229,7 +229,8 @@ class LSSTObservation(object):
         self.all_sed = []        # must be a pysynphot source
         self.all_transmission = []   # must be a pysynphot passband
         self.counts = []         # number of counts
-        self.magnitude = []     # instrumental magnitude
+        self.magnitude = []     # instrumental magnitude for each SED, each atmosphere, each band
+        self.magnit_zeropt = [] # zero point
         
     def get_NBSED(self):
         return self.NBSED
@@ -375,23 +376,7 @@ class LSSTObservation(object):
         self.counts=np.array(self.counts)  # at the end, the array is converted in numpy array
         return self.counts
     
-    def compute_magnitudeold(self):
-        if len(self.counts) == 0:
-            self.compute_counts()
-                # loop on SED  
-        self.magnitude=[]
-        for sed in self.counts:   
-            # loop on each event of a sed 
-            all_obs_mag = []
-            for obs in sed:
-                #loop on band
-                all_band_mag = []
-                for band_counts in obs:
-                    mag=-2.5*np.log10(band_counts)
-                    all_band_mag.append(mag)
-                all_obs_mag.append(all_band_mag) 
-            self.magnitude.append(all_obs_mag) 
-        return self.magnitude
+
     
     def compute_magnitude(self):
         if len(self.counts) == 0:
@@ -402,25 +387,17 @@ class LSSTObservation(object):
         self.magnitude=-2.5*np.log10(self.counts)
         return self.magnitude   
     
+    def compute_magnit_zeropt(self):
+        if len(self.magnitude) == 0:
+            print 'magnit_zeropt :: len(self.magnitude) = ',self.magnitude
+            print 'magnit_zeropt :: ==> self.counts()'
+            self.compute_magnitude()
+            
+        #self.magnit_zeropt=np.median(self.magnitude,axis=0)
+        self.magnit_zeropt=np.average(self.magnitude,axis=0)
+        return self.magnit_zeropt
+            
     
-    def plot_countsold(self,sednum):
-        if len(self.counts) == 0:
-            self.compute_counts()
-              
-        if (sednum>=0 and sednum <self.NBSED):
-            thecounts=self.counts[sednum]
-            plt.figure() 
-            for event in np.arange(self.NBEVENTS):
-                all_bands_counts=thecounts[event]
-                ib=0
-                #loop on band
-                for bandcounts in all_bands_counts:
-                    plt.plot([event],[bandcounts],'o',color=filtercolor[ib])
-                    ib+=1
-            plt.title("all counts",weight="bold")
-            plt.xlabel( 'event number',weight="bold")
-            plt.ylabel('counts',weight="bold")
-            plt.grid()
             
     def plot_counts(self,sednum):
         if len(self.counts) == 0:
@@ -435,25 +412,7 @@ class LSSTObservation(object):
             plt.ylabel('counts',weight="bold")
             plt.grid()
             
-    def plot_magnitudesold(self,sednum):
-        if len(self.magnitude) == 0:
-            self.compute_magnitude()
-              
-        if (sednum>=0 and sednum <self.NBSED):
-            themagnitudes=self.magnitude[sednum]
-        
-            for event in np.arange(self.NBEVENTS):
-                all_bands_mag=themagnitudes[event]
-                ib=0
-                #loop on band
-                for bandmag in all_bands_mag:
-                    plt.plot([event],[bandmag],'o',color=filtercolor[ib])
-                    ib+=1
-            plt.title("all instrumental magnitudes",weight="bold")
-            plt.xlabel( 'event number',weight="bold")
-            plt.ylabel('magnitude',weight="bold")
-            plt.grid()
-            
+
     def plot_magnitudes(self,sednum):
         if len(self.magnitude) == 0:
             self.compute_magnitude()
@@ -466,6 +425,22 @@ class LSSTObservation(object):
             plt.xlabel( 'event number',weight="bold")
             plt.ylabel('magnitude',weight="bold")
             plt.grid()
+            
+    def plot_magnit_zeropt(self,sednum):
+        if len(self.magnitude) == 0:
+            self.compute_magnitude()
+        if len(self.magnit_zeropt) == 0:
+            self.compute_magnit_zeropt()
+        if (sednum>=0 and sednum <self.NBSED):
+            plt.figure()
+            for ib in np.arange(NBBANDS):
+                delta_mag=self.magnitude[sednum,:,ib]-self.magnit_zeropt[:,ib]
+                plt.plot(delta_mag,'-',color=filtercolor[ib],lw=2)
+            plt.title("all instrumental Dleta mag (zeropt - substraction) ",weight="bold")
+            plt.xlabel( 'event number',weight="bold")
+            plt.ylabel('magnitude',weight="bold")
+            plt.grid()
+        
             
     def get_magnitudeforfilternum(self,sednum,filternum):
         if len(self.magnitude) == 0:
@@ -483,6 +458,30 @@ class LSSTObservation(object):
         filternum=band_to_number[filtername]
         if (sednum>=0 and sednum <self.NBSED):        
             return self.get_magnitudeforfilternum(sednum,filternum)
+        else:
+            return None
+        
+    def get_magnitzeroptforfilternum(self,sednum,filternum):
+        if len(self.magnitude) == 0:
+            self.compute_magnitude()
+        if len(self.magnit_zeropt) == 0:
+            self.compute_magnit_zeropt()
+            
+        if (sednum>=0 and sednum <self.NBSED): 
+            return self.magnitude[sednum,:,filternum]-self.magnit_zeropt[:,filternum]
+        else:
+            return None
+        
+    def get_magnitzeroptforfiltername(self,sednum,filtername):
+        if len(self.magnitude) == 0:
+            self.compute_magnitude()
+        if len(self.magnit_zeropt) == 0:
+            self.compute_magnit_zeropt()
+            
+        filternum=band_to_number[filtername]
+        
+        if (sednum>=0 and sednum <self.NBSED):        
+            return self.get_magnitzeroptforfilternum(sednum,filternum)
         else:
             return None
             
