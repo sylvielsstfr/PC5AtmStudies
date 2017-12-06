@@ -77,7 +77,26 @@ def usageaer():
     
     print "*******************************************************************"    
 
- 
+#----------------------------------------------------------------------------
+def ApplyAerosols(wl,tr,thelambda0,tau0,alpha0):
+    """
+     ApplyAerosols(wl,tr,thelambda0,tau0,alpha0)
+     
+     - input :
+     -- wl np array of wavelength in nm
+     -- tr transparency array without aerosols
+     -- thelambda0 : the reference point where to have tau0 in nm
+     -- tau0 is the extinction at thelambda0
+     -- alpha0 the Angstrom exponent
+     
+    """
+    #extinc_aer=tau0*(thelambda0/wl)**alpha0
+    extinc_aer=tau0*np.power(wl/thelambda0,-alpha0)
+    tr_aer=np.exp(-extinc_aer)
+    tr_tot=tr*tr_aer
+    return tr_tot
+    
+    
 #-----------------------------------------------------------------------------
 
 
