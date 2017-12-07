@@ -355,6 +355,30 @@ class LSSTObservation(object):
             plt.grid()
             plt.xlim(WLMIN,WLMAX)
             
+    def plot_samplobservationsflux(self,sednum):
+        if len(self.obssamplarray) ==0:
+            print 'plot_samplobservations :: len(self.obssamplarray) = ',len(self.obssamplarray)
+            print ' plot_samplobservations :: ==> self.make_samplobservations()'
+            self.make_samplobservations()
+        plt.figure() 
+        #selection of the SED    
+        if (sednum>=0 and sednum <self.NBSED):
+            theobservation=self.obssamplarray[sednum]
+            #loop on event
+            for event in np.arange(self.NBEVENTS):
+                all_bands=theobservation[event]
+                ib=0
+                #loop on band
+                for flux in all_bands:
+                    plt.plot(WL,flux*WL,color=filtercolor[ib],lw=2)
+                    ib+=1
+            plt.title("all sampled observations flux ",weight="bold")
+            plt.xlabel( '$\lambda$ (Angstrom)',weight="bold")
+            plt.ylabel('flux * wl',weight="bold")
+            plt.grid()
+            plt.xlim(WLMIN,WLMAX)        
+            
+            
     def compute_counts(self):
         if len(self.obssamplarray) ==0:
             print 'compute_counts :: len(self.obssamplarray) = ',len(self.obssamplarray)
