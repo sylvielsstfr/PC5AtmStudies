@@ -45,7 +45,8 @@ def get_ck04models(temp):
     for log_g in Set_Log_g:
         for logz in Set_Log_Z:
             sed = S.Icat('ck04models', temp, logz, log_g) 
-            all_sed.append(sed)
+            if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
+                all_sed.append(sed)
     return all_sed
 #------------------------------------------------------------------------------------------
 def get_all_ck04models():
@@ -60,7 +61,8 @@ def get_all_ck04models():
         for log_g in Set_Log_g:
             for logz in Set_Log_Z:
                 sed = S.Icat('ck04models', temp, logz, log_g) 
-                all_sub_sed.append(sed)
+                if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
+                    all_sub_sed.append(sed)
         
         all_sed.append(all_sub_sed)
     return all_sed
@@ -71,7 +73,8 @@ def get_k93models(temp):
     for log_g in Set_Log_g:
         for logz in Set_Log_Z:
             sed = S.Icat('k93models', temp, logz, log_g) 
-            all_sed.append(sed)
+            if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
+                all_sed.append(sed)
     return all_sed
 #------------------------------------------------------------------------------------------
 def get_all_k93models():
@@ -84,9 +87,10 @@ def get_all_k93models():
 
         all_sub_sed=[]
         for log_g in Set_Log_g:
-            for logz in Set_Log_Z:
+            for logz in Set_Log_Z:             
                 sed = S.Icat('k93models', temp, logz, log_g) 
-                all_sub_sed.append(sed)
+                if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
+                    all_sub_sed.append(sed)
         
         all_sed.append(all_sub_sed)
     return all_sed
@@ -97,7 +101,8 @@ def get_phoenixmodels(temp):
     for log_g in Set_Log_g:
         for logz in Set_Log_Z:
             sed = S.Icat('phoenix', temp, logz, log_g) 
-            all_sed.append(sed)
+            if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
+                all_sed.append(sed)
     return all_sed
 #------------------------------------------------------------------------------------------
 def get_all_phoenixmodels():
@@ -112,7 +117,8 @@ def get_all_phoenixmodels():
         for log_g in Set_Log_g:
             for logz in Set_Log_Z:
                 sed = S.Icat('phoenix', temp, logz, log_g) 
-                all_sub_sed.append(sed)
+                if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
+                    all_sub_sed.append(sed)
         
         all_sed.append(all_sub_sed)
     return all_sed
