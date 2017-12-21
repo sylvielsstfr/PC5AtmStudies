@@ -134,7 +134,7 @@ def get_all_phoenixmodels():
         all_sed.append(all_sub_sed)
     return all_sed
 #---------------------------------------------------------------------------------------
-def plot_allsed_starmodels(all_sed,thetitle,figfilename,yscale='lin'):
+def plot_allsed_starmodels(all_sed,thetitle,figfilename,yscale='lin',XMIN=3200.,XMAX=10000.):
     
     NBSEDCOLORS=len(all_sed)
     
@@ -156,7 +156,7 @@ def plot_allsed_starmodels(all_sed,thetitle,figfilename,yscale='lin'):
                     plt.plot(sed.wave,sed.flux,sed_colors_mpl[icol])
 
             index+=1
-    plt.xlim(0, 11000)
+    plt.xlim(XMIN, XMAX)
     plt.xlabel(sed.waveunits)
     plt.ylabel(sed.fluxunits)
     plt.grid(True)
@@ -237,7 +237,7 @@ def get_all_calspec_hd():
         
 #-----------------------------------------------------------------------------------------------
    
-def plot_allsed(all_sed,thetitle,figfilename,yscale='lin'):
+def plot_allsed(all_sed,thetitle,figfilename,yscale='lin',XMIN=3200.,XMAX=10000.):
       
     for sed in all_sed:     
         if yscale=='log':
@@ -245,7 +245,7 @@ def plot_allsed(all_sed,thetitle,figfilename,yscale='lin'):
         else:
             plt.plot(sed.wave,sed.flux)
 
-    plt.xlim(0, 11000)
+    plt.xlim(XMIN,XMAX)
     plt.xlabel(sed.waveunits)
     plt.ylabel(sed.fluxunits)
     plt.grid(True)
