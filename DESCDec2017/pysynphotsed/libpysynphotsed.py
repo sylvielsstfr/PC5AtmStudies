@@ -237,22 +237,113 @@ def get_all_calspec_hd():
         
 #-----------------------------------------------------------------------------------------------
    
-def plot_allsed(all_sed,thetitle,figfilename,yscale='lin',XMIN=3200.,XMAX=10000.):
-      
+def plot_allsed(all_sed,thetitle,figfilename,yscale='lin',XMIN=3000.,XMAX=10000.,YMIN=0,YMAX=0):
+    plt.figure()
+    
     for sed in all_sed:     
         if yscale=='log':
-            plt.semilogy(sed.wave,sed.flux)
+            plt.semilogy(sed.wave,sed.flux,lw=2)
         else:
-            plt.plot(sed.wave,sed.flux)
+            plt.plot(sed.wave,sed.flux,lw=2)
 
     plt.xlim(XMIN,XMAX)
+    if(YMAX>0):
+        plt.ylim(YMIN,YMAX)
+        
     plt.xlabel(sed.waveunits)
     plt.ylabel(sed.fluxunits)
     plt.grid(True)
     plt.title(thetitle)
     plt.savefig(figfilename)
     
-
+#------------------------------------------------------------------------------------------------
+def get_all_bc95():
+    SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[5],'templates')
+    
+    filelist=os.listdir(SEDfile_dir)
+   
+    
+    obj_headers = []
+    obj_files = []
+    index=0
+    for filename in filelist:  
+        if re.search('fits',filename):  #example of filename filter
+            index+=1
+            fullfilename = os.path.join(SEDfile_dir,filename)
+            hdr = fits.getheader(fullfilename)
+            obj_headers.append(hdr)
+            obj_files.append(filename)
+            
+    obj_names = []
+    index=0
+    for hdr in obj_headers: 
+        obj_name=obj_headers[index]['TARGETID']
+        obj_names.append(obj_name)
+        index+=1
+        
+    objames_and_objfiles = zip(obj_names, obj_files)
+    
+    OBJDict= {}
+    for obj,thefile in objames_and_objfiles:
+        print obj,': '
+        OBJDict[obj]=thefile
+        print OBJDict[obj] 
+    
+    all_sed=[]        
+    for keyobj in OBJDict:
+        the_file=OBJDict[keyobj]
+        
+        selected_file=the_file
+        selected_fullfile=os.path.join(SEDfile_dir,selected_file)
+        
+        sed=S.FileSpectrum(selected_fullfile)
+        
+        all_sed.append(sed)
+    return all_sed
+    
+ #------------------------------------------------------------------------------------------------   
+def get_all_kc96():
+    SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[13])
+    #filelist=os.listdir(SEDfile_dir) 
+    
+    fits_files = [f for f in os.listdir(SEDfile_dir) if f.endswith('.fits')]
+    
+    obj_headers = []
+    obj_files = []
+    for filename in fits_files:
+        index=0
+        if re.search('fits',filename):  #example of filename filter
+            index+=1
+            fullfilename = os.path.join(SEDfile_dir,filename)
+            hdr = fits.getheader(fullfilename)
+            obj_headers.append(hdr)
+            obj_files.append(filename)
+      
+    
+    obj_names = []
+    index=0
+    for hdr in obj_headers: 
+        obj_name=obj_headers[index]['TARGETID']
+        obj_names.append(obj_name)
+        index+=1
+        
+    objames_and_objfiles = zip(obj_names, obj_files)
+    
+    OBJDict= {}
+    for obj,thefile in objames_and_objfiles:
+        print obj,': '
+        OBJDict[obj]=thefile
+        print OBJDict[obj] 
+    
+    all_sed=[]       
+    for keyobj in OBJDict:
+        the_file=OBJDict[keyobj]      
+        selected_file=the_file
+        selected_fullfile=os.path.join(SEDfile_dir,selected_file)      
+        sed=S.FileSpectrum(selected_fullfile)
+        all_sed.append(sed)
+    return all_sed
+        
 
 #------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -263,17 +354,20 @@ if __name__ == "__main__":
     #plot_allsed_starmodels(all_sed,"ck04models","ck04models.png")
     
     all_sed=get_all_calspec_hd()
-    plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_lin.png',yscale='lin')
-    plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_log.png',yscale='log')
+    plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_lin.png',yscale='lin',YMIN=0,YMAX=0.4e-10)
+    plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_log.png',yscale='log',YMIN=1e-14,YMAX=1e-10)
 
     
     
+    all_sed=get_all_bc95()
+    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',yscale='lin',YMIN=0,YMAX=0.01)
+    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',yscale='log',YMIN=1e-10,YMAX=0.1)
     
     
     
-    
-    
-    
+    all_sed=get_all_kc96()
+    plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_lin.png',yscale='lin')
+    plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_log.png',yscale='log')
     
     
     
