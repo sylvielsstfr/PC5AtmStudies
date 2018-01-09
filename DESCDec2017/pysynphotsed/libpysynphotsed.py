@@ -257,7 +257,7 @@ def plot_allsed(all_sed,thetitle,figfilename,yscale='lin',XMIN=3000.,XMAX=10000.
     plt.savefig(figfilename)
     
 #------------------------------------------------------------------------------------------------
-def get_all_bc95():
+def get_all_bc95(z=0):
     SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[5],'templates')
     
     filelist=os.listdir(SEDfile_dir)
@@ -297,12 +297,15 @@ def get_all_bc95():
         selected_fullfile=os.path.join(SEDfile_dir,selected_file)
         
         sed=S.FileSpectrum(selected_fullfile)
-        
-        all_sed.append(sed)
+        if (z>0):
+            sed_z=sed.redshift(z)
+            all_sed.append(sed_z)
+        else:
+            all_sed.append(sed)
     return all_sed
     
  #------------------------------------------------------------------------------------------------   
-def get_all_kc96():
+def get_all_kc96(z=0):
     SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[13])
     #filelist=os.listdir(SEDfile_dir) 
     
@@ -341,7 +344,14 @@ def get_all_kc96():
         selected_file=the_file
         selected_fullfile=os.path.join(SEDfile_dir,selected_file)      
         sed=S.FileSpectrum(selected_fullfile)
-        all_sed.append(sed)
+        
+        
+        if (z>0):
+            sed_z=sed.redshift(z)
+            all_sed.append(sed_z)
+        else:
+            all_sed.append(sed)
+        
     return all_sed
         
 
@@ -359,13 +369,13 @@ if __name__ == "__main__":
 
     
     
-    all_sed=get_all_bc95()
-    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',yscale='lin',YMIN=0,YMAX=0.01)
-    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',yscale='log',YMIN=1e-10,YMAX=0.1)
+    all_sed=get_all_bc95(z=3)
+    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',XMIN=0,XMAX=11000.,yscale='lin')
+    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',XMIN=0,XMAX=11000.,yscale='log')
     
     
     
-    all_sed=get_all_kc96()
+    all_sed=get_all_kc96(z=3)
     plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_lin.png',yscale='lin')
     plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_log.png',yscale='log')
     
