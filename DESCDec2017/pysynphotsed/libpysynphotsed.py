@@ -140,7 +140,7 @@ def get_all_phoenixmodels():
         all_sed.append(all_sub_sed)
     return all_sed
 #---------------------------------------------------------------------------------------
-def plot_allsed_starmodels(all_sed,thetitle,figfilename,yscale='lin',XMIN=3200.,XMAX=10000.):
+def plot_allsed_starmodels(all_sed,thetitle,figfilename,yscale='lin',XMIN=3200.,XMAX=10000.,YMIN=0,YMAX=0):
     
     NBSEDCOLORS=len(all_sed)
     
@@ -163,6 +163,10 @@ def plot_allsed_starmodels(all_sed,thetitle,figfilename,yscale='lin',XMIN=3200.,
 
             index+=1
     plt.xlim(XMIN, XMAX)
+    
+    if(YMAX>0):
+        plt.ylim(YMIN,YMAX)
+        
     plt.xlabel(sed.waveunits)
     plt.ylabel(sed.fluxunits)
     plt.grid(True)

@@ -420,7 +420,7 @@ class LSSTObservation(object):
             print 'magnit_zeropt :: len(self.magnitude) = ',self.magnitude
             print 'magnit_zeropt :: ==> self.counts()'
             self.compute_magnitude()
-            
+        # CHOOSE AVERAGE OR MEDIAN    
         #self.magnit_zeropt=np.median(self.magnitude,axis=0)
         self.magnit_zeropt=np.average(self.magnitude,axis=0)
         return self.magnit_zeropt
