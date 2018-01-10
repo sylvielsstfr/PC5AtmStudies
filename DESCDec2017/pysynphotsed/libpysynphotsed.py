@@ -16,7 +16,7 @@ from astropy.io import fits
 
 # to enlarge the sizes
 params = {'legend.fontsize': 'x-large',
-          'figure.figsize': (15, 8),
+          'figure.figsize': (10, 6),
          'axes.labelsize': 'x-large',
          'axes.titlesize':'x-large',
          'xtick.labelsize':'x-large',
@@ -56,6 +56,7 @@ def get_ck04models(temp):
     for log_g in Set_Log_g:
         for logz in Set_Log_Z:
             sed = S.Icat('ck04models', temp, logz, log_g) 
+            sed.convert('flam') # to be sure every spectrum is in flam unit
             if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
                 all_sed.append(sed)
     return all_sed
@@ -72,6 +73,7 @@ def get_all_ck04models():
         for log_g in Set_Log_g:
             for logz in Set_Log_Z:
                 sed = S.Icat('ck04models', temp, logz, log_g) 
+                sed.convert('flam') # to be sure every spectrum is in flam unit
                 if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
                     all_sub_sed.append(sed)
         
@@ -84,6 +86,7 @@ def get_k93models(temp):
     for log_g in Set_Log_g:
         for logz in Set_Log_Z:
             sed = S.Icat('k93models', temp, logz, log_g) 
+            sed.convert('flam') # to be sure every spectrum is in flam unit
             if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
                 all_sed.append(sed)
     return all_sed
@@ -100,6 +103,7 @@ def get_all_k93models():
         for log_g in Set_Log_g:
             for logz in Set_Log_Z:             
                 sed = S.Icat('k93models', temp, logz, log_g) 
+                sed.convert('flam') # to be sure every spectrum is in flam unit
                 if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
                     all_sub_sed.append(sed)
         
@@ -112,6 +116,7 @@ def get_phoenixmodels(temp):
     for log_g in Set_Log_g:
         for logz in Set_Log_Z:
             sed = S.Icat('phoenix', temp, logz, log_g) 
+            sed.convert('flam') # to be sure every spectrum is in flam unit
             if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
                 all_sed.append(sed)
     return all_sed
@@ -128,6 +133,7 @@ def get_all_phoenixmodels():
         for log_g in Set_Log_g:
             for logz in Set_Log_Z:
                 sed = S.Icat('phoenix', temp, logz, log_g) 
+                sed.convert('flam') # to be sure every spectrum is in flam unit
                 if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
                     all_sub_sed.append(sed)
         
@@ -236,11 +242,28 @@ def get_all_calspec_hd():
     return all_sed
         
 #-----------------------------------------------------------------------------------------------
-   
+ 
+def get_all_thermalbb(N=10,T0=6000.,sigT=100.):
+    
+    all_sed=[]   
+    
+    all_random_values=np.random.standard_normal(N)
+    for index in np.arange(N):
+        T=T0+all_random_values[index]*sigT
+        sed=S.BlackBody(T)
+        sed.convert('flam') # to be sure every spectrum is in flam unit
+        all_sed.append(sed)
+        
+    return all_sed
+
+#---------------------------------------------------------------------------------
 def plot_allsed(all_sed,thetitle,figfilename,yscale='lin',XMIN=3000.,XMAX=10000.,YMIN=0,YMAX=0):
     plt.figure()
     
-    for sed in all_sed:     
+    for sed in all_sed:  
+        
+        sed.convert('flam') # to be sure every spectrum is in flam unit
+        
         if yscale=='log':
             plt.semilogy(sed.wave,sed.flux,lw=2)
         else:
@@ -297,6 +320,7 @@ def get_all_bc95(z=0):
         selected_fullfile=os.path.join(SEDfile_dir,selected_file)
         
         sed=S.FileSpectrum(selected_fullfile)
+        sed.convert('flam') # to be sure every spectrum is in flam unit
         if (z>0):
             sed_z=sed.redshift(z)
             all_sed.append(sed_z)
@@ -344,6 +368,7 @@ def get_all_kc96(z=0):
         selected_file=the_file
         selected_fullfile=os.path.join(SEDfile_dir,selected_file)      
         sed=S.FileSpectrum(selected_fullfile)
+        sed.convert('flam') # to be sure every spectrum is in flam unit
         
         
         if (z>0):

@@ -251,12 +251,16 @@ class LSSTObservation(object):
         self.obsarray=[]
         for sed in self.all_sed:
             # loop on atmospheric events
+            
+            sed.convert('flam') # to be sure every spectrum is in flam unit
+            
             all_obs_persed=[]
             for transmission in self.all_transmission:
                 all_obs_perevent= []
                 #loop on all bands
                 for band in transmission:
                     # force=[extrap|taper]
+                    # Normalement se débrouille avec les unités de la SED
                     obs= S.Observation(sed,band,force='extrap')   # do OBS = SED x Transmission
                     all_obs_perevent.append(obs)
                 all_obs_persed.append(all_obs_perevent)
