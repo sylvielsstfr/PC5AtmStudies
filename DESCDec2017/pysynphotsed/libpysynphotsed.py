@@ -254,6 +254,9 @@ def get_all_thermalbb(N=10,T0=6000.,sigT=100.):
     all_random_values=np.random.standard_normal(N)
     for index in np.arange(N):
         T=T0+all_random_values[index]*sigT
+        
+        print T
+        
         sed=S.BlackBody(T)
         sed.convert('flam') # to be sure every spectrum is in flam unit
         all_sed.append(sed)

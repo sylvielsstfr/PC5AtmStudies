@@ -19,17 +19,23 @@ NBBANDS=6
 band_to_number={'u':0,'g':1,'r':2,'i':3,'z':4,'y4':5}
 number_to_band={0:'u',1:'g',2:'r',3:'i',4:'z',5:'y4'}
 filtercolor=['blue','green','red','orange','grey','black']
-WLMIN=3000.
-WLMAX=11000.
+NBCOLORS=NBBANDS-1
+number_to_color={0:'U-G',1:'G-R',2:'R-I',3:'I-Z',4:'Z-Y'}
+color_to_number={'U-G':0,'G-R':1,'R-I':2,'I-Z':3,'Z-Y':4}
 
-NBINS=10000
-BinWidth=(WLMAX-WLMIN)/float(NBINS)
-WL=np.linspace(WLMIN,WLMAX,NBINS)
+WLMIN=3000. # Minimum wavelength : PySynPhot works with Angstrom
+WLMAX=11000. # Minimum wavelength : PySynPhot works with Angstrom
+
+NBINS=10000 # Number of bins between WLMIN and WLMAX
+BinWidth=(WLMAX-WLMIN)/float(NBINS) # Bin width in Angstrom
+WL=np.linspace(WLMIN,WLMAX,NBINS)   # Array of wavelength in Angstrom
 
 LSST_COLL_SURF=35*(u.m)**2/(u.cm)**2  # LSST collectif surface
 S.refs.setref(area=LSST_COLL_SURF.decompose(), waveset=None)
-S.refs.set_default_waveset(minwave=3000, maxwave=11000, num=8000, delta=1, log=False)
+S.refs.set_default_waveset(minwave=WLMIN, maxwave=WLMAX, num=NBINS, delta=BinWidth, log=False)
 S.refs.showref()
+
+EXPOSURE=30.0                      # LSST Exposure time
 
 # to enlarge the sizes
 params = {'legend.fontsize': 'x-large',
@@ -42,6 +48,17 @@ plt.rcParams.update(params)
 
 #---------------------------------------------------------------------------------
 def CountRate(wl,fl):
+    '''
+    CountRate(wl,fl,t):
+        This Count rate is calculated in a BandWidth
+        Input :
+            wl : wavelength array
+            fl : flux
+        Output :
+            count
+            
+        CountRate is normalized to the number of photoelectrons per sec
+    '''
     dlambda=BinWidth 
     df=wl*fl*LSST_COLL_SURF/(S.units.C*S.units.H)*dlambda
     # (erg/s/cm2/Angstrom) x (Angstrom)  x  (cm^2) / (erg . s . Angstrom /s) * Angstrom
@@ -51,18 +68,36 @@ def CountRate(wl,fl):
 #---------------------------------------------------------------------------------
     
 #---------------------------------------------------------------------------------
-def InstrumMag(wl,fl):
-    m=-2.5*np.log10(CountRate(wl,fl))
-    return m
+def InstrumMag(countrate,dt=EXPOSURE):
+    '''
+    InstrumMag(countrate,dt=EXPOSURE):
+        Compute Instrumental Magnitude given the Exposure time
+        countrate is an array
+    '''
+
+    m=np.where(countrate>0,-2.5*np.log10(countrate*dt),0 )
+    dm=np.where(countrate>0,-2.5/2.3/np.sqrt(countrate*dt),0)
+    
+    inst_mag=np.array([m,dm])
+    return inst_mag
 #---------------------------------------------------------------------------------
 
+
+
 #---------------------------------------------------------------------------------
-def ComputeColor(wl,fl1,fl2):
-    m1=InstrumMag(wl,fl1)
-    m2=InstrumMag(wl,fl2)
-    return m1-m2
+def ComputeColor(m1_e,m2_e):
+    '''
+    ComputeColor(m1,m2):
+        Compute Color and its error
+    '''
+    C=m1_e[0]-m2_e[0] # Color
+    dC=np.sqrt(m1_e[1]*m1_e[1]+m2_e[1]*m2_e[1]) # error on color
+   
+    return np.array([C,dC])
 #---------------------------------------------------------------------------------
     
+
+
 #-------------------------------------------------------------------------------------
 class Atmosphere(object):
     '''
@@ -210,7 +245,7 @@ class LSSTTransmission(object):
             
 #------------------------------------------------------------------------------------        
 
-       
+#------------------------------------------------------------------------------------------------       
 class LSSTObservation(object):
     '''
     class LSSTObservation(object)
@@ -218,8 +253,6 @@ class LSSTObservation(object):
     Compute the product of the effective LSST transmission (already filter x atmosphere)
     by the SED
     
-    '''
-    def __init__(self,name):
         self.name = name        # name given to the instance
         self.NBBANDS = 0        # number of bands
         self.NBEVENTS = 0       # number of different atmosphere called events
@@ -231,35 +264,80 @@ class LSSTObservation(object):
         self.counts = []         # number of counts
         self.magnitude = []     # instrumental magnitude for each SED, each atmosphere, each band
         self.magnit_zeropt = [] # zero point
+        self.magnit_zeropt_err = []  # zero point error
+    
+    
+    '''
+    def __init__(self,name):
+        '''
+        Initialize variable containers
+        '''
+        self.name = name        # name given to the instance
+        self.NBBANDS = 0        # number of bands
+        self.NBEVENTS = 0       # number of different atmosphere called events
+        self.NBSED = 0          # number of different input SED
+        self.obsarray = []       # container for the product of atm x filters x SED
+        self.obssamplarray = []  # sampled array for magnitude calculation
+        self.all_sed = []        # must be a pysynphot source
+        self.all_transmission = []   # must be a pysynphot passband
+        self.counts = []         # number of counts rate, per second
+        self.magnitude = []      # instrumental magnitude for each SED, each atmosphere, each band
+        self.magnitude_err= []   # error on Magnitude
+        self.magnit_zeropt = []  # zero point
+        self.magnit_zeropt_err = []  # zero point error
+        self.color = []              # colors U-G, G-R, R-I, I-Z, Z-Y
+        self.color_err = []          # color errors
         
     def get_NBSED(self):
+        '''
+        get_NBSED() getter for the number of SED
+        
+        '''
         return self.NBSED
         
     def fill_sed(self,all_sed):
+        '''
+        fill_sed(all_sed) :
+            Initialization
+            fill all SED array of all objects among which the zero point will be evaluated
+        '''
         self.all_sed= all_sed
         self.NBSED=len(all_sed)
         
     def fill_transmission(self,all_transm):
+        '''
+        fill_transmission(all_transm) :
+            Initialization
+            fill transmission for each filter (including atmosphere and LSST throughput)
+            Usually transmission varies with one parameter at a time, say PWV or VAOD, or zam
+        '''
         self.all_transmission=all_transm
         self.NBEVENTS=len(all_transm)
         self.NBBANDS=len(all_transm[0])
        
     def make_observations(self):
+        '''
+        make_observations
+            1) First stage of calculation, compute the flux
+        '''
         if len(self.obsarray)!=0:
             return self.obsarray
         # loop on all SED
         self.obsarray=[]
+        # loop on all kind of SED of the catalog
         for sed in self.all_sed:
             # loop on atmospheric events
             
             sed.convert('flam') # to be sure every spectrum is in flam unit
+                                #----------------------------------------------
             
             all_obs_persed=[]
+            # for each SED, loop on all stransmissions
             for transmission in self.all_transmission:
                 all_obs_perevent= []
-                #loop on all bands
+                #loop on all bands of LSST
                 for band in transmission:
-                    # force=[extrap|taper]
+                    # force=[extrap|taper] <---  check if OK
                     # Normalement se débrouille avec les unités de la SED
                     obs= S.Observation(sed,band,force='extrap')   # do OBS = SED x Transmission
                     all_obs_perevent.append(obs)
@@ -268,12 +346,20 @@ class LSSTObservation(object):
         return self.obsarray
     
     def get_observations(self):
+        '''
+        get_observations
+            Getter of all observations
+        '''
         if len(self.obsarray) ==0:
             return self.make_observations()
         else:
             return self.obsarray
 
     def get_observationsforSED(self,sednum):
+        '''
+            get_observationsforSED(sednum):
+                Get all observations for a single SED
+        '''
         if len(self.obsarray) ==0:
             self.make_observations()
     
@@ -284,6 +370,10 @@ class LSSTObservation(object):
             return None
         
     def plot_observations(self,sednum):
+        '''
+            plot_observations(sednum):
+                plot all observations for a single SED 
+        '''
         if len(self.obsarray) ==0:
             print 'plot_observations :: len(self.obsarray) = ',len(self.obsarray)
             print ' plot_observations :: ==> self.make_observations()'
@@ -305,7 +395,9 @@ class LSSTObservation(object):
             
     def make_samplobservations(self):
         '''
-        Resample the flux with equi-width bins
+        make_samplobservations():
+              2nd Stage : Resample the observed flux with equi-width bins
+              This is mandatory to calculate magnitudes
         '''
         if len(self.obssamplarray)!=0:
             return self.obssamplarray
@@ -314,19 +406,24 @@ class LSSTObservation(object):
         for sedsource in self.obsarray:        # loop on input SED sources
             # loop on atmospheric events
             all_obssampl_persedsource=[]
-            for obs_per_event in sedsource:    # loop on all event for that sed             
+            for obs_per_event in sedsource:    # loop on all observation-event for that sed             
                 all_obssampl_bands= []
-                #loop on all bands
+                #loop on all bands U G R I Z Y
                 for obsband in obs_per_event:  # loop on bands
-                    # do interpolation
+                    # do interpolation inside each band
+                    #------------------------------------
                     func=interp1d(obsband.wave,obsband.flux,kind='cubic')
-                    flux=func(WL)
+                    flux=func(WL)              # flux in each bin
                     all_obssampl_bands.append(flux) # save the band
                 all_obssampl_persedsource.append(all_obssampl_bands) # save that event   
             self.obssamplarray.append(all_obssampl_persedsource) # save all the event for that sed
         return self.obssamplarray
     
     def get_samplobservationsforSED(self,sednum):
+        '''
+        get_samplobservationsforSED(sednum):
+            Getter for sampled observation of a single SED
+        '''
         if len(self.obssamplarray) ==0:
             self.make_samplobservations()
     
@@ -337,6 +434,11 @@ class LSSTObservation(object):
             return None
     
     def plot_samplobservations(self,sednum):
+        '''
+        plot_samplobservations(sednum):
+            Plot sampled observation for one SED
+            Plot Flux x  vs wl
+        '''
         if len(self.obssamplarray) ==0:
             print 'plot_samplobservations :: len(self.obssamplarray) = ',len(self.obssamplarray)
             print ' plot_samplobservations :: ==> self.make_samplobservations()'
@@ -360,6 +462,11 @@ class LSSTObservation(object):
             plt.xlim(WLMIN,WLMAX)
             
     def plot_samplobservationsflux(self,sednum):
+        '''
+        plot_samplobservationsflux(sednum):
+            Plot Flux x wl vs wl
+          
+        '''
         if len(self.obssamplarray) ==0:
             print 'plot_samplobservations :: len(self.obssamplarray) = ',len(self.obssamplarray)
             print ' plot_samplobservations :: ==> self.make_samplobservations()'
@@ -384,6 +491,10 @@ class LSSTObservation(object):
             
             
     def compute_counts(self):
+        '''
+            compute_counts(): Compute the photoelectron rate
+        
+        '''
         if len(self.obssamplarray) ==0:
             print 'compute_counts :: len(self.obssamplarray) = ',len(self.obssamplarray)
             print 'compute_counts :: ==> self.make_samplobservations()'
@@ -394,7 +505,7 @@ class LSSTObservation(object):
             # loop on each event of a sed 
             all_obs_counts = []
             for obs in sed:
-                #loop on band
+                #loop on bands U G R I Z Y
                 all_band_counts = []
                 for band in obs:
                     counts=CountRate(WL,band) # my personnal implementation of counts
@@ -406,23 +517,34 @@ class LSSTObservation(object):
     
 
     
-    def compute_magnitude(self):
+    def compute_magnitude(self,dt=EXPOSURE):
+        '''
+        compute_magnitude() : Compute Magnitude and Magnitude error
+        '''
         if len(self.counts) == 0:
             print 'compute_magnitude :: len(self.counts) = ',self.counts
             print 'compute_magnitude :: ==> self.counts()'
             self.compute_counts()
                 # loop on SED  
-        self.magnitude=-2.5*np.log10(self.counts)
-        return self.magnitude   
+        #self.magnitude=-2.5*np.log10(self.counts)
+        self.magnitude, self.magnitude_err= InstrumMag(self.counts,dt) # do not consider here the error
+        return self.magnitude  
+    
+    
     
     def compute_magnit_zeropt(self):
+        '''
+        compute_magnit_zeropt(): Compute magntitude zero point and its error magnitude error
+        '''
         if len(self.magnitude) == 0:
             print 'magnit_zeropt :: len(self.magnitude) = ',self.magnitude
             print 'magnit_zeropt :: ==> self.counts()'
             self.compute_magnitude()
         # CHOOSE AVERAGE OR MEDIAN    
         #self.magnit_zeropt=np.median(self.magnitude,axis=0)
-        self.magnit_zeropt=np.average(self.magnitude,axis=0)
+        self.magnit_zeropt=np.average(self.magnitude,axis=0) # zero point average
+        
+        self.magnit_zeropt_err=np.sqrt(np.average(self.magnitude_err*self.magnitude_err,axis=0)) #zero point average error
         return self.magnit_zeropt
             
     
@@ -512,6 +634,15 @@ class LSSTObservation(object):
             return self.get_magnitzeroptforfilternum(sednum,filternum)
         else:
             return None
+        
+    def compute_colors(self,dt=EXPOSURE):
+        '''
+        compute_colors(self,dt=EXPOSURE)
+        '''
+        if len(self.magnitude) == 0:
+            print 'compute_colors :: len(self.magnitude) = ',self.magnitude
+            print 'compute_color :: ==> self.magnitude()'
+            self.compute_magnitude(dt)
             
  
 #-----------------------------------------------------------------------------------------------
