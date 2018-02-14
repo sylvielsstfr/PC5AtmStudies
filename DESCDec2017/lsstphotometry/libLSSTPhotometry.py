@@ -265,6 +265,8 @@ class LSSTObservation(object):
         self.magnitude = []     # instrumental magnitude for each SED, each atmosphere, each band
         self.magnit_zeropt = [] # zero point
         self.magnit_zeropt_err = []  # zero point error
+        self.colors = []              # colors U-G, G-R, R-I, I-Z, Z-Y
+        self.colors_err = []          # color errors
     
     
     '''
@@ -285,8 +287,10 @@ class LSSTObservation(object):
         self.magnitude_err= []   # error on Magnitude
         self.magnit_zeropt = []  # zero point
         self.magnit_zeropt_err = []  # zero point error
-        self.color = []              # colors U-G, G-R, R-I, I-Z, Z-Y
-        self.color_err = []          # color errors
+        self.magnit_bias =  []        # magnitude bias wrt zero point
+        self.magnit_bias_err =  []        # magnitude bias wrt zero point
+        self.colors = []              # colors U-G, G-R, R-I, I-Z, Z-Y
+        self.colors_err = []          # color errors
         
     def get_NBSED(self):
         '''
@@ -525,23 +529,20 @@ class LSSTObservation(object):
             print 'compute_magnitude :: len(self.counts) = ',self.counts
             print 'compute_magnitude :: ==> self.counts()'
             self.compute_counts()
-                # loop on SED  
-        #self.magnitude=-2.5*np.log10(self.counts)
         self.magnitude, self.magnitude_err= InstrumMag(self.counts,dt) # do not consider here the error
         return self.magnitude  
     
     
     
-    def compute_magnit_zeropt(self):
+    def compute_magnit_zeropt(self,dt=EXPOSURE):
         '''
         compute_magnit_zeropt(): Compute magntitude zero point and its error magnitude error
         '''
         if len(self.magnitude) == 0:
             print 'magnit_zeropt :: len(self.magnitude) = ',self.magnitude
             print 'magnit_zeropt :: ==> self.counts()'
-            self.compute_magnitude()
+            self.compute_magnitude(dt)
         # CHOOSE AVERAGE OR MEDIAN    
-        #self.magnit_zeropt=np.median(self.magnitude,axis=0)
         self.magnit_zeropt=np.average(self.magnitude,axis=0) # zero point average
         
         self.magnit_zeropt_err=np.sqrt(np.average(self.magnitude_err*self.magnitude_err,axis=0)) #zero point average error
@@ -563,9 +564,9 @@ class LSSTObservation(object):
             plt.grid()
             
 
-    def plot_magnitudes(self,sednum):
+    def plot_magnitudes(self,sednum,dt=EXPOSURE):
         if len(self.magnitude) == 0:
-            self.compute_magnitude()
+            self.compute_magnitude(dt)
               
         if (sednum>=0 and sednum <self.NBSED):
             plt.figure()
@@ -576,9 +577,9 @@ class LSSTObservation(object):
             plt.ylabel('magnitude',weight="bold")
             plt.grid()
             
-    def plot_magnit_zeropt(self,sednum):
+    def plot_magnit_zeropt(self,sednum,dt=EXPOSURE):
         if len(self.magnitude) == 0:
-            self.compute_magnitude()
+            self.compute_magnitude(dt)
         if len(self.magnit_zeropt) == 0:
             self.compute_magnit_zeropt()
         if (sednum>=0 and sednum <self.NBSED):
@@ -592,18 +593,18 @@ class LSSTObservation(object):
             plt.grid()
         
             
-    def get_magnitudeforfilternum(self,sednum,filternum):
+    def get_magnitudeforfilternum(self,sednum,filternum,dt=EXPOSURE):
         if len(self.magnitude) == 0:
-            self.compute_magnitude()
+            self.compute_magnitude(dt)
             
         if (sednum>=0 and sednum <self.NBSED): 
             return self.magnitude[sednum,:,filternum]
         else:
             return None
         
-    def get_magnitudeforfiltername(self,sednum,filtername):
+    def get_magnitudeforfiltername(self,sednum,filtername,dt=EXPOSURE):
         if len(self.magnitude) == 0:
-            self.compute_magnitude()
+            self.compute_magnitude(dt)
             
         filternum=band_to_number[filtername]
         if (sednum>=0 and sednum <self.NBSED):        
@@ -611,9 +612,9 @@ class LSSTObservation(object):
         else:
             return None
         
-    def get_magnitzeroptforfilternum(self,sednum,filternum):
+    def get_magnitzeroptforfilternum(self,sednum,filternum,dt=EXPOSURE):
         if len(self.magnitude) == 0:
-            self.compute_magnitude()
+            self.compute_magnitude(dt)
         if len(self.magnit_zeropt) == 0:
             self.compute_magnit_zeropt()
             
@@ -622,9 +623,9 @@ class LSSTObservation(object):
         else:
             return None
         
-    def get_magnitzeroptforfiltername(self,sednum,filtername):
+    def get_magnitzeroptforfiltername(self,sednum,filtername,dt=EXPOSURE):
         if len(self.magnitude) == 0:
-            self.compute_magnitude()
+            self.compute_magnitude(dt)
         if len(self.magnit_zeropt) == 0:
             self.compute_magnit_zeropt()
             
@@ -634,7 +635,47 @@ class LSSTObservation(object):
             return self.get_magnitzeroptforfilternum(sednum,filternum)
         else:
             return None
+    
+
+    def compute_magnitude_bias(self,dt=EXPOSURE):
+        '''
+        compute_magnitude_bias(self,dt=EXPOSURE):
         
+            Compute magntitude bias with respect to zero point for each atmosphere event
+            Notice no error computed by now
+        
+        '''
+        if len(self.magnitude) == 0:
+            self.compute_magnitude(dt)
+        if len(self.magnit_zeropt) == 0:
+            self.compute_magnit_zeropt()
+            
+        self.magnit_bias =  []
+        self.magnit_bias_err =  [] 
+        
+        # LOOP ON SED
+        for sednum in  np.arange(self.NBSED): 
+            # loop on each event of a sed 
+            all_magnitudes_all_events_thatsed=self.magnitude[sednum]
+            all_event_mag_biased = [] 
+            
+            # loop on atmospheric events magnitudes
+            NbEVT=-1
+            for mag_event in all_magnitudes_all_events_thatsed :
+                NbEVT+=1
+                all_band_mag_biased = []
+                # loop on color
+                for iband in np.arange(NBBANDS):
+                #loop on bands U G R I Z Y
+                    thebias=mag_event[iband]-self.magnit_zeropt[NbEVT,iband]
+                    
+                    all_band_mag_biased.append(thebias)
+                all_event_mag_biased.append(all_band_mag_biased) 
+            self.magnit_bias.append(all_event_mag_biased) 
+        self.magnit_bias=np.array(self.magnit_bias)  # at the end, the array is converted in numpy array
+        return self.magnit_bias
+        
+    
     def compute_colors(self,dt=EXPOSURE):
         '''
         compute_colors(self,dt=EXPOSURE)
@@ -643,6 +684,25 @@ class LSSTObservation(object):
             print 'compute_colors :: len(self.magnitude) = ',self.magnitude
             print 'compute_color :: ==> self.magnitude()'
             self.compute_magnitude(dt)
+            
+        self.color=[]
+        # LOOP on SED
+        for sednum in  np.arange(self.NBSED): 
+            # loop on each event of a sed 
+            all_magnitudes_all_events_thatsed=self.magnitude[sednum]
+            all_event_colors = [] 
+            # loop on atmospheric events magntitues
+            for mag_event in all_magnitudes_all_events_thatsed :
+                all_band_colors = []
+                # loop on color
+                for iband in np.arange(NBCOLORS):
+                #loop on bands U G R I Z Y
+                    thecolor=mag_event[iband]-mag_event[iband+1]
+                    all_band_colors.append(thecolor)
+                all_event_colors.append(all_band_colors) 
+            self.colors.append(all_event_colors) 
+        self.colors=np.array(self.colors)  # at the end, the array is converted in numpy array
+        return self.colors
             
  
 #-----------------------------------------------------------------------------------------------
