@@ -22,6 +22,7 @@ filtercolor=['blue','green','red','orange','grey','black']
 NBCOLORS=NBBANDS-1
 number_to_color={0:'U-G',1:'G-R',2:'R-I',3:'I-Z',4:'Z-Y'}
 color_to_number={'U-G':0,'G-R':1,'R-I':2,'I-Z':3,'Z-Y':4}
+mpl_colors_col=['b','g','r','y','k']
 
 WLMIN=3000. # Minimum wavelength : PySynPhot works with Angstrom
 WLMAX=11000. # Minimum wavelength : PySynPhot works with Angstrom
@@ -291,6 +292,8 @@ class LSSTObservation(object):
         self.magnit_bias_err =  []        # magnitude bias wrt zero point
         self.colors = []              # colors U-G, G-R, R-I, I-Z, Z-Y
         self.colors_err = []          # color errors
+        self.colors_bias = []              # colors bias (-0pt) U-G, G-R, R-I, I-Z, Z-Y
+        self.colors_bias_err = []          # color bias errors (-0pt)
         
     def get_NBSED(self):
         '''
@@ -703,6 +706,74 @@ class LSSTObservation(object):
             self.colors.append(all_event_colors) 
         self.colors=np.array(self.colors)  # at the end, the array is converted in numpy array
         return self.colors
+    
+    def compute_color_bias(self,dt=EXPOSURE):
+        '''
+        compute_colors_bias(self,dt=EXPOSURE)
+        
+        A FAIRE
+        '''
+        if len(self.magnit_bias) == 0:
+            print 'compute_colors :: len(self.magnit_bias) = ',self.magnit_bias
+            print 'compute_color :: ==> self.magnitude()'
+            self.compute_magnit_bias(dt)
+  
+
+          
+        self.color_bias=[]
+        # LOOP on SED
+        for sednum in  np.arange(self.NBSED): 
+            # loop on each event of a sed 
+            all_magnit_bias_all_events_thatsed=self.magnit_bias[sednum]
+            all_event_colors_bias = [] 
+            # loop on atmospheric events magntitues
+            for mag_event in all_magnit_bias_all_events_thatsed :
+                all_band_colors_bias = []
+                # loop on color
+                for iband in np.arange(NBCOLORS):
+                #loop on bands U G R I Z Y
+                    thecolor_bias=mag_event[iband]-mag_event[iband+1]
+                    all_band_colors_bias.append(thecolor_bias)
+                all_event_colors_bias.append(all_band_colors_bias) 
+            self.color_bias.append(all_event_colors_bias) 
+        self.color_bias=np.array(self.color_bias)  # at the end, the array is converted in numpy array
+        return self.color_bias
+    
+    
+    
+    def show_color_bias(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
+            '''
+            
+            '''
+            
+            # loop on all sed
+            if len(self.colors) == 0:
+                print 'show_color_bias :: len(self.magnitude) = ',self.colors
+                print 'show_color_bias :: ==> self.magnitude()'
+                self.compute_colors(dt)
+            
+            
+            for ised in np.arange(self.NBSED):
+                col=self.color_bias[ised,:,:] # all colors for all atm event and all colors
+                col0=self.color_bias[ised,index0,:]  # all colors for index0 atm event and all colors
+                
+                # loop on colors for plotting
+                for icol in np.arange(NBCOLORS):
+                    thelabel=number_to_color[icol]
+                    deltacol=col[:,icol]-col0[icol]
+                    if(ised==0):
+                        plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=1,label=thelabel)
+                    else:
+                        plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=1)
+            plt.plot([xarray[0],xarray[-1]],[0.005,0.005],'k:',lw=3)
+            plt.plot([xarray[0],xarray[-1]],[-0.005,-0.005],'k:',lw=3)
+   
+            plt.title(title,weight='bold')
+            plt.xlabel(xtitle,weight='bold')
+            plt.ylabel("$\Delta$ col (mag)",weight='bold')
+            plt.legend(loc=2)
+            plt.grid()
+            plt.savefig(figname)   
             
  
 #-----------------------------------------------------------------------------------------------
