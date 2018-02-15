@@ -10,8 +10,12 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
+import matplotlib.cm as cm
+import matplotlib as mpl
+cmap = cm.jet
+
 import pysynphot as S
-import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import astropy.units as u
 
@@ -677,8 +681,9 @@ class LSSTObservation(object):
             self.magnit_bias.append(all_event_mag_biased) 
         self.magnit_bias=np.array(self.magnit_bias)  # at the end, the array is converted in numpy array
         return self.magnit_bias
+    #---------------------------------------------------------------------------------------------------------- 
         
-    
+    #---------------------------------------------------------------------------------------------------------- 
     def compute_colors(self,dt=EXPOSURE):
         '''
         compute_colors(self,dt=EXPOSURE)
@@ -706,7 +711,9 @@ class LSSTObservation(object):
             self.colors.append(all_event_colors) 
         self.colors=np.array(self.colors)  # at the end, the array is converted in numpy array
         return self.colors
+    #----------------------------------------------------------------------------------------------------------
     
+    #----------------------------------------------------------------------------------------------------------
     def compute_color_bias(self,dt=EXPOSURE):
         '''
         compute_colors_bias(self,dt=EXPOSURE)
@@ -738,19 +745,24 @@ class LSSTObservation(object):
             self.color_bias.append(all_event_colors_bias) 
         self.color_bias=np.array(self.color_bias)  # at the end, the array is converted in numpy array
         return self.color_bias
+    #----------------------------------------------------------------------------------------------------------
     
-    
-    
+    #----------------------------------------------------------------------------------------------------------
     def show_color_bias(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
             '''
+            show_color_bias(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE)
+            
+            input:
+                index0 : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
             
             '''
             
             # loop on all sed
             if len(self.colors) == 0:
-                print 'show_color_bias :: len(self.magnitude) = ',self.colors
-                print 'show_color_bias :: ==> self.magnitude()'
-                self.compute_colors(dt)
+                print 'show_color_bias :: len(self.colors) = ',self.colors
+                print 'show_color_bias :: ==> self.colors_bias()'
+                self.compute_colors_bias(dt)
             
             
             for ised in np.arange(self.NBSED):
@@ -774,8 +786,155 @@ class LSSTObservation(object):
             plt.legend(loc=2)
             plt.grid()
             plt.savefig(figname)   
+    #----------------------------------------------------------------------------------------------------------
+           
+
+    #----------------------------------------------------------------------------------------------------------
+           
+    def ShowColorTrajectory(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
+        '''
+        ShowColorTrajectory(Index_Start,xarray,xlabel,ylabel,title,figname,dt=EXPOSURE)
+        input:
+                index0: reference index (atm)
+                Index_Start : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
+        
+        
+        '''
+    
+    
+        Index_Stop=Index_Start+3
+    
+        ColorDiff=np.zeros([2,self.NBSED,len(xarray)])
+        x= xarray
+        for i in range(len(x)):
+            c = cmap(int(np.rint(x[i] / x.max() * 255)))
+
+        norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
+
+        fig = plt.figure(figsize=(10, 10))    
+    
+        for ised in np.arange(self.NBSED):
+            for icol in np.arange(Index_Start,Index_Stop-1):
+                ColorIndex=icol-Index_Start
+                #mag1=self.get_magnitzeroptforfilternum(ised,icol)
+                #mag2=self.get_magnitzeroptforfilternum(ised,icol+1)
+                #deltamag= deltamag=mag1-mag2 - (mag1[0]-mag2[0])
+                #ColorDiff[ColorIndex,ised,:]=deltamag
+                
+                col=self.color_bias[ised,:,:] # all colors for all atm event and all colors
+                col0=self.color_bias[ised,index0,:]  # all colors for index0 atm event and all colors
+                deltacol=col[:,icol]-col0[icol]
+                
+                ColorDiff[ColorIndex,ised,:]=deltacol
+
+        for ised in np.arange(self.NBSED):
+            i=0
+            for xel in xarray:
+                c = cmap(int(np.rint(x[i] / x.max() * 255)))
+                plt.plot(ColorDiff[0,ised,i],ColorDiff[1,ised,i],'o', markersize=20, mfc=c, mec=c)
+                i+=1    
             
+            plt.plot([-0.005,0.005],[0.005,0.005],'k:',lw=2)
+            plt.plot([-0.005,0.005],[-0.005,-0.005],'k:',lw=2)
+            plt.plot([0.005,0.005],[-0.005,0.005],'k:',lw=2)
+            plt.plot([-0.005,-0.005],[-0.005,0.005],'k:',lw=2)
+    
+        plt.grid()
+        plt.xlabel(number_to_color[Index_Start],fontsize=20,weight='bold')
+        plt.ylabel(number_to_color[Index_Start+1],fontsize=20,weight='bold')
+        plt.title(title,fontsize=30,weight='bold')
+
+        rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
+        ax1 = fig.add_axes(rect,label=zlabel)
+        cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,
+                                norm=norm,
+                                orientation='vertical')
+        cb1.set_label(zlabel, rotation=90)
+        plt.savefig(figname)      
+
+    #----------------------------------------------------------------------------------------------------------
  
+ 
+    #----------------------------------------------------------------------------------------------------------
+    # colorindex 0 : U
+    #            1 : G
+    #            2 : R
+
+    def ShowColorTrajectoryNew(self,index0,Index_Start,xarray,zoom,zlabel,title,figname,dt=EXPOSURE):
+        '''
+        ShowColorTrajectoryNew(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE)
+        
+        '''
+        #Index_Start=0
+        Index_Stop=Index_Start+3
+    
+    #
+        ColorDiff=np.zeros([2,self.NBSED,len(xarray)])
+        ColorDiff2=np.zeros([2,self.NBSED,len(xarray)])
+    
+        x= xarray
+        for i in range(len(x)):
+            c = cmap(int(np.rint(x[i] / x.max() * 255)))
+
+        norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
+
+        fig = plt.figure(figsize=(15, 15))    
+    
+        # loop on galxy SED
+        for ised in np.arange(self.NBSED):
+            # loop on filters
+            for icol in np.arange(Index_Start,Index_Stop-1):
+            
+                ColorIndex=icol-Index_Start
+                #mag1=self.get_magnitzeroptforfilternum(ised,icol)
+                #mag2=self.get_magnitzeroptforfilternum(ised,icol+1)
+                #deltamag= deltamag=mag1-mag2 - (mag1[0]-mag2[0])
+                #ColorDiff[ColorIndex,ised,:]=deltamag*30
+                
+                col=self.color_bias[ised,:,:] # all colors for all atm event and all colors
+                col0=self.color_bias[ised,index0,:]  # all colors for index0 atm event and all colors
+                deltacol=col[:,icol]-col0[icol]
+                ColorDiff[ColorIndex,ised,:]=deltacol*zoom
+                
+
+                #mag1_0=self.get_magnitudeforfilternum(ised,icol)
+                #mag2_0=self.get_magnitudeforfilternum(ised,icol+1) 
+                #deltamag_0=mag1_0-mag2_0
+                #ColorDiff2[ColorIndex,ised,:]=deltamag_0
+                
+                ColorDiff2[ColorIndex,ised,:]=self.colors[ised,:,icol]
+            
+            for ised in np.arange(self.NBSED):
+                i=0
+                for xel in xarray:
+                    c = cmap(int(np.rint(x[i] / x.max() * 255)))
+                    plt.plot(ColorDiff[0,ised,i]+ColorDiff2[0,ised,0],ColorDiff[1,ised,i]+ColorDiff2[1,ised,0],'o', markersize=10, mfc=c, mec=c)
+                    i+=1    
+            
+            #plt.plot([-0.005,0.005],[0.005,0.005],'k:',lw=2)
+            #plt.plot([-0.005,0.005],[-0.005,-0.005],'k:',lw=2)
+            #plt.plot([0.005,0.005],[-0.005,0.005],'k:',lw=2)
+            #plt.plot([-0.005,-0.005],[-0.005,0.005],'k:',lw=2)
+    
+        plt.grid()
+
+        plt.xlabel(number_to_color[Index_Start],fontsize=20,weight='bold')
+        plt.ylabel(number_to_color[Index_Start+1],fontsize=20,weight='bold')        
+        plt.title(title,fontsize=30,weight='bold')
+        plt.xlim(1,5)
+        plt.ylim(-2,2)
+
+
+        rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
+        ax1 = fig.add_axes(rect,label=zlabel)
+        cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,norm=norm,orientation='vertical')
+        cb1.set_label(zlabel, rotation=90,fontsize=20,weight='bold')
+        plt.savefig(figname)      
+        #----------------------------------------------------------------------------------------------------------   
+    
+    
+    
 #-----------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------------
