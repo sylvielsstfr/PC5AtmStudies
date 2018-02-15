@@ -713,12 +713,102 @@ class LSSTObservation(object):
         return self.colors
     #----------------------------------------------------------------------------------------------------------
     
+    
+    
+        #----------------------------------------------------------------------------------------------------------
+    def show_colors_0pt(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
+            '''
+            show_color(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE)
+            
+            input:
+                index0 : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
+            
+            '''
+            
+            # loop on all sed
+            
+            if len(self.magnit_zeropt) == 0:
+                self.compute_magnit_zeropt()
+            
+            
+    
+            
+            for icol in np.arange(NBCOLORS):
+                thelabel=number_to_color[icol]
+                
+                col=self.magnit_zeropt[:,icol]- self.magnit_zeropt[:,icol+1] # all colors for all atm event and all colors
+                col0=self.magnit_zeropt[index0,icol]-self.magnit_zeropt[index0,icol+1]
+                
+                deltacol=col-col0
+            
+                plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=2,label=thelabel)
+                  
+            plt.plot([xarray[0],xarray[-1]],[0.005,0.005],'k:',lw=3)
+            plt.plot([xarray[0],xarray[-1]],[-0.005,-0.005],'k:',lw=3)
+   
+            plt.title(title,weight='bold')
+            plt.xlabel(xtitle,weight='bold')
+            plt.ylabel("$\Delta$ col (mag)",weight='bold')
+            plt.legend(loc=2)
+            plt.grid()
+            plt.savefig(figname)   
+    #----------------------------------------------------------------------------------------------------------
+            
+    
+    
+    
+    
+    #----------------------------------------------------------------------------------------------------------
+    def show_colors(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
+            '''
+            show_color(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE)
+            
+            input:
+                index0 : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
+            
+            '''
+            
+            # loop on all sed
+            if len(self.colors) == 0:
+                print 'show_color :: len(self.colors) = ',self.colors
+                print 'show_color :: ==> self.colors()'
+                self.compute_colors(dt)
+            
+            
+            for ised in np.arange(self.NBSED):
+                col=self.colors[ised,:,:] # all colors for all atm event and all colors
+                col0=self.colors[ised,index0,:]  # all colors for index0 atm event and all colors
+                
+                # loop on colors for plotting
+                for icol in np.arange(NBCOLORS):
+                    thelabel=number_to_color[icol]
+                    deltacol=col[:,icol]-col0[icol]
+                    if(ised==0):
+                        plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=1,label=thelabel)
+                    else:
+                        plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=1)
+            plt.plot([xarray[0],xarray[-1]],[0.005,0.005],'k:',lw=3)
+            plt.plot([xarray[0],xarray[-1]],[-0.005,-0.005],'k:',lw=3)
+   
+            plt.title(title,weight='bold')
+            plt.xlabel(xtitle,weight='bold')
+            plt.ylabel("$\Delta$ col (mag)",weight='bold')
+            plt.legend(loc=2)
+            plt.grid()
+            plt.savefig(figname)   
+    #----------------------------------------------------------------------------------------------------------
+            
+    
+    
+    
     #----------------------------------------------------------------------------------------------------------
     def compute_color_bias(self,dt=EXPOSURE):
         '''
         compute_colors_bias(self,dt=EXPOSURE)
         
-        A FAIRE
+        
         '''
         if len(self.magnit_bias) == 0:
             print 'compute_colors :: len(self.magnit_bias) = ',self.magnit_bias
@@ -812,7 +902,7 @@ class LSSTObservation(object):
 
         norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
 
-        fig = plt.figure(figsize=(10, 10))    
+        fig = plt.figure(figsize=(15, 15))    
     
         for ised in np.arange(self.NBSED):
             for icol in np.arange(Index_Start,Index_Stop-1):
@@ -850,7 +940,7 @@ class LSSTObservation(object):
         cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,
                                 norm=norm,
                                 orientation='vertical')
-        cb1.set_label(zlabel, rotation=90)
+        cb1.set_label(zlabel, rotation=90,fontsize=20,weight='bold')
         plt.savefig(figname)      
 
     #----------------------------------------------------------------------------------------------------------
