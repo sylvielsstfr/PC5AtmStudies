@@ -263,6 +263,7 @@ def get_all_thermalbb(N=10,T0=6000.,sigT=100.):
         
     return all_sed
 
+#------------------------------------------------------------------------------------------
 
 def get_all_thermalbb_flatT(N=10,TMIN=3000.,TMAX=25000.):
     
