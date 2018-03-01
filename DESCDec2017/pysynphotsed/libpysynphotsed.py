@@ -263,6 +263,22 @@ def get_all_thermalbb(N=10,T0=6000.,sigT=100.):
         
     return all_sed
 
+
+def get_all_thermalbb_flatT(N=10,TMIN=3000.,TMAX=25000.):
+    
+    all_sed=[]   
+    
+    all_random_values=np.random.random_sample((N,))
+    all_random_Temp=TMIN+(TMAX-TMIN)*all_random_values
+    for index in np.arange(N):
+        T=all_random_Temp[index]
+        sed=S.BlackBody(T)
+        sed.convert('flam') # to be sure every spectrum is in flam unit
+        all_sed.append(sed)
+        
+    return all_sed
+
+
 #---------------------------------------------------------------------------------
 def plot_allsed(all_sed,thetitle,figfilename,yscale='lin',XMIN=3000.,XMAX=10000.,YMIN=0,YMAX=0):
     plt.figure()

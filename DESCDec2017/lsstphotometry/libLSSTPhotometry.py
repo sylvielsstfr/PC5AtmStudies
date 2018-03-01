@@ -985,8 +985,7 @@ class LSSTObservation(object):
     #----------------------------------------------------------------------------------------------------------
            
 
-    #----------------------------------------------------------------------------------------------------------
-           
+    #----------------------------------------------------------------------------------------------------------          
     def ShowColorBiasTrajectory(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
         '''
         ShowColorBiasTrajectory(index0,Index_Start,xarray,xlabel,ylabel,title,figname,dt=EXPOSURE):
@@ -1020,7 +1019,7 @@ class LSSTObservation(object):
 
         norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
 
-        fig = plt.figure(figsize=(15, 15))    
+        fig = plt.figure(figsize=(10, 10))    
     
         # LOOP on SED to fill array ColorDiff[icol,ised,icond]
         for ised in np.arange(self.NBSED):
@@ -1065,9 +1064,178 @@ class LSSTObservation(object):
 
     #----------------------------------------------------------------------------------------------------------
  
- 
-    #----------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------          
+    def ShowColorBiasTrajectoryVect(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
+        '''
+        ShowColorBiasTrajectoryVect(index0,Index_Start,xarray,xlabel,ylabel,title,figname,dt=EXPOSURE):
+            input:
+                index0: reference index on atm-am conditions
+                Index_Start : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
+            output:
+                2D-plot of colors_bias , with each point corresponding to 1 SED-1-conditions.
+                The colors of plots is linked to the condition.
+                example 
+                Plot of  G-R vs U-G points, one per SED-condition, the colors of points is related to cond
+            
+        
+        '''
+    
+        # define the max color
+        Index_Stop=Index_Start+3
+    
+        # reserve a table of ColorDiff in 3 indexes
+        # - Index 1 : first or second color
+        # - Index 2 : SED number
+        # - Index 3 : each atmospheric-am condition
+        ColorDiff=np.zeros([2,self.NBSED,len(xarray)])
+        
+        # the x-array indeed will be colors in this 2D plot
+        x= xarray
+        for i in range(len(x)):
+            c = cmap(int(np.rint(x[i] / x.max() * 255)))
 
+        norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
+
+        fig = plt.figure(figsize=(10, 10))    
+    
+        # LOOP on SED to fill array ColorDiff[icol,ised,icond]
+        for ised in np.arange(self.NBSED):
+            # LOOP on the two selected colors for plotting along X and Y axis
+            for icol in np.arange(Index_Start,Index_Stop-1):
+                ColorIndex=icol-Index_Start
+                              
+                col=self.colors_bias[ised,:,:]        # get biased colors for all atm event and all colors
+                col0=self.colors_bias[ised,index0,:]  # get biased colors for the index0 reference atm event 
+                deltacol=col[:,icol]-col0[icol]       # compute the deltacol
+                
+                ColorDiff[ColorIndex,ised,:]=deltacol # fill the array
+
+        # LOOP on SED to plot colors in the 2D plot of colors
+        for ised in np.arange(self.NBSED):
+            
+            # LOOP on atm-am-conditions 
+            for i in np.arange(len(xarray)-1):
+                c = cmap(int(np.rint(x[i] / x.max() * 255)))   # define the color of the point in 2D plot
+                
+                X=ColorDiff[0,ised,i]
+                nextX=ColorDiff[0,ised,i+1]
+                Y=ColorDiff[1,ised,i]
+                nextY=ColorDiff[1,ised,i+1]
+                U=nextX-X
+                V=nextY-Y
+                plt.quiver(X,Y, U, V,scale_units='xy', angles='xy', scale=1, color=c)
+                
+                #plt.plot(ColorDiff[0,ised,i],ColorDiff[1,ised,i],'o', markersize=20, mfc=c, mec=c)
+            
+            
+            plt.plot([-0.005,0.005],[0.005,0.005],'k:',lw=2)
+            plt.plot([-0.005,0.005],[-0.005,-0.005],'k:',lw=2)
+            plt.plot([0.005,0.005],[-0.005,0.005],'k:',lw=2)
+            plt.plot([-0.005,-0.005],[-0.005,0.005],'k:',lw=2)
+    
+        plt.grid()
+        xtitle=number_to_color[Index_Start]+' color bias'
+        ytitle=number_to_color[Index_Start+1]+' color bias'
+        plt.xlabel(xtitle,fontsize=20,weight='bold')
+        plt.ylabel(ytitle,fontsize=20,weight='bold')
+        plt.title(title,fontsize=30,weight='bold')
+
+        rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
+        ax1 = fig.add_axes(rect,label=zlabel)
+        cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,
+                                norm=norm,
+                                orientation='vertical')
+        cb1.set_label(zlabel, rotation=90,fontsize=20,weight='bold')
+        plt.savefig(figname)      
+
+    #----------------------------------------------------------------------------------------------------------
+    
+    
+        #----------------------------------------------------------------------------------------------------------
+    def ShowColor2DPlot(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
+        '''
+        ShowColor2DPlot(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
+            input:
+                index0: reference index on atm-am conditions
+                Index_Start : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
+                zoom :
+            output:
+                2D-plot of colors shifted by color-bias, with each point corresponding to 1 SED-1-conditions.
+                The colors of plots is linked to the condition.
+                example 
+                Plot of  G-R vs U-G points, one per SED-condition, the colors of points is related to cond
+        
+        '''
+         # define the max color
+        Index_Stop=Index_Start+3
+    
+        # reserve TWO tables of ColorDiff in 3 indexes
+        # - Index 1 : first or second color
+        # - Index 2 : SED number
+        # - Index 3 : each atmospheric-am condition
+        
+        ColorDiff=np.zeros([2,self.NBSED,len(xarray)])
+        ColorDiff2=np.zeros([2,self.NBSED,len(xarray)])
+    
+         # the x-array indeed will be colors in this 2D plot
+        x= xarray
+        for i in range(len(x)):
+            c = cmap(int(np.rint(x[i] / x.max() * 255)))
+
+        norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
+
+        fig = plt.figure(figsize=(10, 10))    
+    
+        # LOOP on SED
+        for ised in np.arange(self.NBSED):
+            # LOOP on the tow colors to fill the two Tables
+            for icol in np.arange(Index_Start,Index_Stop-1):
+            
+                ColorIndex=icol-Index_Start
+                
+                
+                col=self.colors_bias[ised,:,:]         # get biased colors for all atm event and all colors
+                col0=self.colors_bias[ised,index0,:]   # get biased colors for the index0 reference atm event 
+                deltacol=col[:,icol]-col0[icol]        # compute the deltacol
+                ColorDiff[ColorIndex,ised,:]=deltacol           # exagerate the deltacol              
+                ColorDiff2[ColorIndex,ised,:]=self.colors[ised,:,icol] # original color of the source
+         
+        #LOOP on SED to plot colors in the 2D plot of colors
+        for ised in np.arange(self.NBSED):
+            i=0 # index of atm condition
+            # LOOP on atm-am-conditions 
+            for xel in xarray:
+                c = cmap(int(np.rint(x[i] / x.max() * 255)))
+                plt.plot(ColorDiff2[0,ised,i],ColorDiff2[1,ised,i],'o', markersize=5, mfc=c, mec=c)
+                i+=1    # increase index on sed condition
+            
+    
+        plt.grid()
+
+        xtitle=number_to_color[Index_Start]+' color '
+        ytitle=number_to_color[Index_Start+1]+' color '
+
+        plt.xlabel(xtitle,fontsize=20,weight='bold')
+        plt.ylabel(ytitle,fontsize=20,weight='bold')        
+        plt.title(title,fontsize=30,weight='bold')
+        #plt.xlim(-5,5)
+        #plt.ylim(-5,5)
+
+
+        rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
+        ax1 = fig.add_axes(rect,label=zlabel)
+        cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,norm=norm,orientation='vertical')
+        cb1.set_label(zlabel, rotation=90,fontsize=20,weight='bold')
+        plt.savefig(figname)      
+        #----------------------------------------------------------------------------------------------------------   
+    
+    
+    
+    
+    
+    #----------------------------------------------------------------------------------------------------------
     def ShowColorTrajectory(self,index0,Index_Start,xarray,zoom,zlabel,title,figname,dt=EXPOSURE):
         '''
         ShowColorTrajectory(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
@@ -1101,7 +1269,7 @@ class LSSTObservation(object):
 
         norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
 
-        fig = plt.figure(figsize=(15, 15))    
+        fig = plt.figure(figsize=(10, 10))    
     
         # LOOP on SED
         for ised in np.arange(self.NBSED):
@@ -1123,7 +1291,7 @@ class LSSTObservation(object):
             # LOOP on atm-am-conditions 
             for xel in xarray:
                 c = cmap(int(np.rint(x[i] / x.max() * 255)))
-                plt.plot(ColorDiff[0,ised,i]+ColorDiff2[0,ised,0],ColorDiff[1,ised,i]+ColorDiff2[1,ised,0],'o', markersize=10, mfc=c, mec=c)
+                plt.plot(ColorDiff[0,ised,i]+ColorDiff2[0,ised,0],ColorDiff[1,ised,i]+ColorDiff2[1,ised,0],'o', markersize=5, mfc=c, mec=c)
                 i+=1    # increase index on sed condition
             
     
@@ -1135,8 +1303,8 @@ class LSSTObservation(object):
         plt.xlabel(xtitle,fontsize=20,weight='bold')
         plt.ylabel(ytitle,fontsize=20,weight='bold')        
         plt.title(title,fontsize=30,weight='bold')
-        plt.xlim(1,5)
-        plt.ylim(-2,2)
+        #plt.xlim(-5,5)
+        #plt.ylim(-5,5)
 
 
         rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
@@ -1181,7 +1349,7 @@ class LSSTObservation(object):
 
         norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
 
-        fig = plt.figure(figsize=(15, 15))    
+        fig = plt.figure(figsize=(10, 10))    
     
         # LOOP on SED
         for ised in np.arange(self.NBSED):
@@ -1219,8 +1387,8 @@ class LSSTObservation(object):
         plt.xlabel(xtitle,fontsize=20,weight='bold')
         plt.ylabel(ytitle,fontsize=20,weight='bold')        
         plt.title(title,fontsize=30,weight='bold')
-        plt.xlim(1,5)
-        plt.ylim(-2,2)
+        #plt.xlim(-5,5)
+        #plt.ylim(-5,5)
 
 
         rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
