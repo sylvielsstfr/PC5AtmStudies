@@ -54,7 +54,7 @@ plt.rcParams.update(params)
 #---------------------------------------------------------------------------------
 def CountRate(wl,fl):
     '''
-    CountRate(wl,fl,t):
+    CountRate(wl,fl):
         This Count rate is calculated in a BandWidth
         Input :
             wl : wavelength array
@@ -62,7 +62,9 @@ def CountRate(wl,fl):
         Output :
             count
             
-        CountRate is normalized to the number of photoelectrons per sec
+        CountRate is normalized to the number of photoelectrons per sec.
+        It takes into account the LSST collection surface and the unit conversion into photoel.
+        Notice one does not need ADU units.
     '''
     dlambda=BinWidth 
     df=wl*fl*LSST_COLL_SURF/(S.units.C*S.units.H)*dlambda
@@ -77,13 +79,15 @@ def InstrumMag(countrate,dt=EXPOSURE):
     '''
     InstrumMag(countrate,dt=EXPOSURE):
         Compute Instrumental Magnitude given the Exposure time
-        countrate is an array
+        Notice that exposure time is taken into account in magnitudes, not before !
+        countrate is a numpy array.
+        Both magnitude and magnitude error are numpy arrays.
     '''
 
-    m=np.where(countrate>0,-2.5*np.log10(countrate*dt),0 )
-    dm=np.where(countrate>0,-2.5/2.3/np.sqrt(countrate*dt),0)
+    m=np.where(countrate>0,-2.5*np.log10(countrate*dt),0 )        # the magnitude
+    dm=np.where(countrate>0,-2.5/2.3/np.sqrt(countrate*dt),0)     # the error on magnitude 
     
-    inst_mag=np.array([m,dm])
+    inst_mag=np.array([m,dm])              # return both magntitude and its error.
     return inst_mag
 #---------------------------------------------------------------------------------
 
@@ -298,14 +302,14 @@ class LSSTObservation(object):
         self.colors_err = []          # color errors
         self.colors_bias = []              # colors bias (-0pt) U-G, G-R, R-I, I-Z, Z-Y
         self.colors_bias_err = []          # color bias errors (-0pt)
-        
+    #----------------------------------------------------------------------------        
     def get_NBSED(self):
         '''
         get_NBSED() getter for the number of SED
         
         '''
         return self.NBSED
-        
+    #----------------------------------------------------------------------------        
     def fill_sed(self,all_sed):
         '''
         fill_sed(all_sed) :
@@ -314,22 +318,27 @@ class LSSTObservation(object):
         '''
         self.all_sed= all_sed
         self.NBSED=len(all_sed)
-        
+   #----------------------------------------------------------------------------            
     def fill_transmission(self,all_transm):
         '''
         fill_transmission(all_transm) :
             Initialization
             fill transmission for each filter (including atmosphere and LSST throughput)
-            Usually transmission varies with one parameter at a time, say PWV or VAOD, or zam
+            Usually transmission varies with one parameter at a time, say PWV or VAOD, or z_am
         '''
         self.all_transmission=all_transm
         self.NBEVENTS=len(all_transm)
         self.NBBANDS=len(all_transm[0])
-       
+    #----------------------------------------------------------------------------       
     def make_observations(self):
         '''
-        make_observations
-            1) First stage of calculation, compute the flux
+        make_observations():
+            1) First stage of calculation, compute the flux in photoelectrons
+            ----------------------------------------------------------------
+            For each SED in the SED collector-
+               For each atmospheric transmission conditions and various airmasses
+                   For each of the six LSST filter band
+                       Compute of each wl in the SED the corresponding Flux
         '''
         if len(self.obsarray)!=0:
             return self.obsarray
@@ -349,27 +358,27 @@ class LSSTObservation(object):
                 #loop on all bands of LSST
                 for band in transmission:
                     # force=[extrap|taper] <---  check if OK
-                    # Normalement se débrouille avec les unités de la SED
+                    # Normalement pysynphot se débrouille avec les unités de la SED
                     obs= S.Observation(sed,band,force='extrap')   # do OBS = SED x Transmission
                     all_obs_perevent.append(obs)
                 all_obs_persed.append(all_obs_perevent)
             self.obsarray.append(all_obs_persed)
         return self.obsarray
-    
+    #----------------------------------------------------------------------------  
     def get_observations(self):
         '''
-        get_observations
+        get_observations():
             Getter of all observations
         '''
         if len(self.obsarray) ==0:
             return self.make_observations()
         else:
             return self.obsarray
-
+    #----------------------------------------------------------------------------
     def get_observationsforSED(self,sednum):
         '''
             get_observationsforSED(sednum):
-                Get all observations for a single SED
+                Get all observations for a single SED by giving the sed number
         '''
         if len(self.obsarray) ==0:
             self.make_observations()
@@ -379,11 +388,11 @@ class LSSTObservation(object):
         else:
             print 'get_observationsforSED :: bad SED number',sednum
             return None
-        
+    #----------------------------------------------------------------------------        
     def plot_observations(self,sednum):
         '''
             plot_observations(sednum):
-                plot all observations for a single SED 
+                control plot all observations for a single SED selected by sednum
         '''
         if len(self.obsarray) ==0:
             print 'plot_observations :: len(self.obsarray) = ',len(self.obsarray)
@@ -403,17 +412,27 @@ class LSSTObservation(object):
             plt.ylabel('flux',weight="bold")
             plt.grid()
             plt.xlim(WLMIN,WLMAX)
-            
+    #----------------------------------------------------------------------------            
     def make_samplobservations(self):
         '''
         make_samplobservations():
               2nd Stage : Resample the observed flux with equi-width bins
-              This is mandatory to calculate magnitudes
+              --------------------------------------------------------------
+              This is nesserary to compute later magnitude by integrating the experimental flux
+              over the wavelength range.
+              The original flux which was filled acording the SED binning is replaced
+              by an interpolated  flux in a regular wl binning.
+              This is mandatory to calculate magnitudes later.
+              Be sure make_observations() has been called previously
         '''
-        if len(self.obssamplarray)!=0:
+        if len(self.obssamplarray)!=0:        # if already computed return it
             return self.obssamplarray
         
-        self.obssamplarray=[]                  # output contaioner
+        if len(self.obsarray)==0:
+            self.make_observations()
+        
+        
+        self.obssamplarray=[]                  # init output contaioner
         for sedsource in self.obsarray:        # loop on input SED sources
             # loop on atmospheric events
             all_obssampl_persedsource=[]
@@ -424,16 +443,17 @@ class LSSTObservation(object):
                     # do interpolation inside each band
                     #------------------------------------
                     func=interp1d(obsband.wave,obsband.flux,kind='cubic')
-                    flux=func(WL)              # flux in each bin
+                    flux=func(WL)              # flux in each bin in array WL
                     all_obssampl_bands.append(flux) # save the band
                 all_obssampl_persedsource.append(all_obssampl_bands) # save that event   
             self.obssamplarray.append(all_obssampl_persedsource) # save all the event for that sed
         return self.obssamplarray
-    
+    #----------------------------------------------------------------------------
     def get_samplobservationsforSED(self,sednum):
         '''
         get_samplobservationsforSED(sednum):
-            Getter for sampled observation of a single SED
+            Getter for sampled observations of a single SED having the number sednum.
+            Check obssamplarray has been calculated.
         '''
         if len(self.obssamplarray) ==0:
             self.make_samplobservations()
@@ -443,17 +463,19 @@ class LSSTObservation(object):
         else:
             print 'get_samplobservationsforSED :: bad SED number',sednum
             return None
-    
+    #---------------------------------------------------------------------------------    
     def plot_samplobservations(self,sednum):
         '''
         plot_samplobservations(sednum):
-            Plot sampled observation for one SED
+            Plot sampled observation for one SED of number sednum
             Plot Flux x  vs wl
+            Check obssamplarray has been calculated
         '''
         if len(self.obssamplarray) ==0:
             print 'plot_samplobservations :: len(self.obssamplarray) = ',len(self.obssamplarray)
             print ' plot_samplobservations :: ==> self.make_samplobservations()'
             self.make_samplobservations()
+            
         plt.figure() 
         #selection of the SED    
         if (sednum>=0 and sednum <self.NBSED):
@@ -471,12 +493,12 @@ class LSSTObservation(object):
             plt.ylabel('flux',weight="bold")
             plt.grid()
             plt.xlim(WLMIN,WLMAX)
-            
+    #---------------------------------------------------------------------------------        
     def plot_samplobservationsflux(self,sednum):
         '''
         plot_samplobservationsflux(sednum):
             Plot Flux x wl vs wl
-          
+             
         '''
         if len(self.obssamplarray) ==0:
             print 'plot_samplobservations :: len(self.obssamplarray) = ',len(self.obssamplarray)
@@ -499,38 +521,56 @@ class LSSTObservation(object):
             plt.ylabel('flux * wl',weight="bold")
             plt.grid()
             plt.xlim(WLMIN,WLMAX)        
-            
-            
+    #-------------------------------------------------------------------------------        
     def compute_counts(self):
         '''
-            compute_counts(): Compute the photoelectron rate
-        
+            compute_counts(): 
+            3rd Stage : Compute the photoelectron rate in each LSST band
+            ------------------------------------------------------------
+            External CountRate() function is used
+            Check obssamplarray has been calculated
+            Notice the very important fact that self.counts is converted into a 3D numpy array:
+                - first index : sednum
+                - second index : atm/ z_am condition
+                - third index : obs band 0,... 5    
         '''
         if len(self.obssamplarray) ==0:
             print 'compute_counts :: len(self.obssamplarray) = ',len(self.obssamplarray)
             print 'compute_counts :: ==> self.make_samplobservations()'
             self.make_samplobservations()
+            
+            
         # loop on SED  
-        self.counts=[]
-        for sed in self.obssamplarray:   
+        self.counts=[]                            # init count
+        for sed in self.obssamplarray:            # loop on SED 
             # loop on each event of a sed 
             all_obs_counts = []
-            for obs in sed:
+            for obs in sed:                       # loop on all sampled obs of each SED
                 #loop on bands U G R I Z Y
-                all_band_counts = []
-                for band in obs:
-                    counts=CountRate(WL,band) # my personnal implementation of counts
+                all_band_counts = []              # init band count container
+                for band in obs:                  # loop on each band of sampled obs of that SED
+                    counts=CountRate(WL,band)     # my personnal implementation of counts
                     all_band_counts.append(counts)
                 all_obs_counts.append(all_band_counts) 
             self.counts.append(all_obs_counts) 
         self.counts=np.array(self.counts)  # at the end, the array is converted in numpy array
         return self.counts
-    
-
-    
+    #-------------------------------------------------------------------------------------   
     def compute_magnitude(self,dt=EXPOSURE):
         '''
-        compute_magnitude() : Compute Magnitude and Magnitude error
+        compute_magnitude() : 
+            4th Stage :  Compute Magnitude and Magnitude error
+            ----------------------------------------------------
+            External InstrumMag() function is used.
+            Notice Exposure must be provided at this stage.
+            Check counts has been calculated.
+            Notice the very important fact that self.magnitude and elf.magnitude_err are
+            converted into a 3D numpy array:
+                - first index : sednum
+                - second index : atm/ z_am condition
+                - third index : obs band 0,... 5
+                
+            Temporary: the error on magnitude is not returned.
         '''
         if len(self.counts) == 0:
             print 'compute_magnitude :: len(self.counts) = ',self.counts
@@ -538,26 +578,37 @@ class LSSTObservation(object):
             self.compute_counts()
         self.magnitude, self.magnitude_err= InstrumMag(self.counts,dt) # do not consider here the error
         return self.magnitude  
-    
-    
-    
+    #-----------------------------------------------------------------------------------------
+    # Notice calibration analysis start here (could be moved to another class)
+    #------------------------------------------------------------------------------------------
     def compute_magnit_zeropt(self,dt=EXPOSURE):
         '''
-        compute_magnit_zeropt(): Compute magntitude zero point and its error magnitude error
+        compute_magnit_zeropt(): 
+            5th stage : Compute magnititude zero point and its error magnitude error over all SED
+            ------------------------------------------------------------------------
+            BECAREFULL : What if the observation are at different airmasses ?
+            MAYBE we should separate different airmasses in different objects ?
+            THIS POINT OF DIFFERENT AIRMASSES MUST BE STUDIED !!!!!!!!!!!
+            Check if magntiudes has been computed.
         '''
         if len(self.magnitude) == 0:
             print 'magnit_zeropt :: len(self.magnitude) = ',self.magnitude
             print 'magnit_zeropt :: ==> self.counts()'
             self.compute_magnitude(dt)
-        # CHOOSE AVERAGE OR MEDIAN    
-        self.magnit_zeropt=np.average(self.magnitude,axis=0) # zero point average
+            
+            
+        # CHOOSE AVERAGE OR MEDIAN OVER ALL SED for each atm conditions and   
+        self.magnit_zeropt=np.average(self.magnitude,axis=0) # zero point average over all SED
+                                                             # axis=0 means for all SED
         
         self.magnit_zeropt_err=np.sqrt(np.average(self.magnitude_err*self.magnitude_err,axis=0)) #zero point average error
         return self.magnit_zeropt
-            
-    
-            
+    #----------------------------------------------------------------------------------------------                 
     def plot_counts(self,sednum):
+        '''
+        plot_counts(sednum):
+            Plot the counts rate for a given SED
+        '''
         if len(self.counts) == 0:
             self.compute_counts()
               
@@ -569,13 +620,17 @@ class LSSTObservation(object):
             plt.xlabel( 'event number',weight="bold")
             plt.ylabel('counts',weight="bold")
             plt.grid()
-            
-
+    #---------------------------------------------------------------------------------------     
     def plot_magnitudes(self,sednum,dt=EXPOSURE):
-        if len(self.magnitude) == 0:
+        '''
+        plot_magnitudes(sednum,dt=EXPOSURE):
+            Plot the magnitudes
+            
+        '''
+        if len(self.magnitude) == 0:                # check magnitudes has been computed
             self.compute_magnitude(dt)
               
-        if (sednum>=0 and sednum <self.NBSED):
+        if (sednum>=0 and sednum <self.NBSED):      # check SED number
             plt.figure()
             for ib in np.arange(NBBANDS):
                 plt.plot(self.magnitude[sednum,:,ib],'-',color=filtercolor[ib],lw=2)
@@ -583,13 +638,20 @@ class LSSTObservation(object):
             plt.xlabel( 'event number',weight="bold")
             plt.ylabel('magnitude',weight="bold")
             plt.grid()
-            
+        else:
+            print " plot_magnitudes() : bad SED number",sednum
+   #-----------------------------------------------------------------------------------------         
     def plot_magnit_zeropt(self,sednum,dt=EXPOSURE):
-        if len(self.magnitude) == 0:
-            self.compute_magnitude(dt)
-        if len(self.magnit_zeropt) == 0:
-            self.compute_magnit_zeropt()
-        if (sednum>=0 and sednum <self.NBSED):
+        '''
+        plot_magnit_zeropt(sednum,dt=EXPOSURE):
+            Plot the zero-point magnitudes.
+            
+        '''
+
+        if len(self.magnit_zeropt) == 0:              # compute zero-point
+            self.compute_magnit_zeropt(dt)
+
+        if (sednum>=0 and sednum <self.NBSED):        # check zero-point
             plt.figure()
             for ib in np.arange(NBBANDS):
                 delta_mag=self.magnitude[sednum,:,ib]-self.magnit_zeropt[:,ib]
@@ -598,18 +660,31 @@ class LSSTObservation(object):
             plt.xlabel( 'event number',weight="bold")
             plt.ylabel('magnitude',weight="bold")
             plt.grid()
-        
+        else:
+            print " plot__magnit_zeropt() : bad SED number",sednum
+   #---------------------------------------------------------------------------------------------     
             
     def get_magnitudeforfilternum(self,sednum,filternum,dt=EXPOSURE):
+        '''
+        get_magnitudeforfilternum(sednum,filternum,dt=EXPOSURE):
+            getter for magnitude
+        '''
         if len(self.magnitude) == 0:
             self.compute_magnitude(dt)
             
-        if (sednum>=0 and sednum <self.NBSED): 
+        if (sednum>=0 and sednum <self.NBSED and filternum>0 and filternum< self.NBBANDS): 
             return self.magnitude[sednum,:,filternum]
         else:
+            print "get_magnitudeforfilternum(sednum,filternum) bad number argument :: "
+            print "sednum = ",sednum
+            print "filternum =", filternum
             return None
-        
+    #-----------------------------------------------------------------------------------------
     def get_magnitudeforfiltername(self,sednum,filtername,dt=EXPOSURE):
+        '''
+        get_magnitudeforfiltername(self,sednum,filtername,dt=EXPOSURE):
+            getter for magnitude
+        '''
         if len(self.magnitude) == 0:
             self.compute_magnitude(dt)
             
@@ -617,63 +692,82 @@ class LSSTObservation(object):
         if (sednum>=0 and sednum <self.NBSED):        
             return self.get_magnitudeforfilternum(sednum,filternum)
         else:
+            print "get_magnitudeforfiltername(sednum,filtername) bad number argument :: "
+            print "sednum = ",sednum
+            print "filtername =", filtername  
             return None
+    #--------------------------------------------------------------------------------------------
         
     def get_magnitzeroptforfilternum(self,sednum,filternum,dt=EXPOSURE):
-        if len(self.magnitude) == 0:
-            self.compute_magnitude(dt)
+        '''
+        get_magnitzeroptforfilternum(sednum,filternum,dt=EXPOSURE):
+            getter for magnitude zero-point
+        '''
+ 
         if len(self.magnit_zeropt) == 0:
-            self.compute_magnit_zeropt()
+            self.compute_magnit_zeropt(dt)
             
-        if (sednum>=0 and sednum <self.NBSED): 
+        if (sednum>=0 and sednum <self.NBSED and filternum>0 and filternum< self.NBBANDS): 
             return self.magnitude[sednum,:,filternum]-self.magnit_zeropt[:,filternum]
         else:
+            print "get_magnitzeroptforfilternum(sednum,filternum) bad number argument :: "
+            print "sednum = ",sednum
+            print "filternum =", filternum
+            
             return None
-        
+    #-------------------------------------------------------------------------------------------       
     def get_magnitzeroptforfiltername(self,sednum,filtername,dt=EXPOSURE):
-        if len(self.magnitude) == 0:
-            self.compute_magnitude(dt)
+        '''
+        get_magnitzeroptforfiltername(self,sednum,filtername,dt=EXPOSURE):
+            getter for magnitude zero-point
+        '''
+       
         if len(self.magnit_zeropt) == 0:
-            self.compute_magnit_zeropt()
+            self.compute_magnit_zeropt(dt)
             
         filternum=band_to_number[filtername]
         
         if (sednum>=0 and sednum <self.NBSED):        
             return self.get_magnitzeroptforfilternum(sednum,filternum)
         else:
+            print "get_magnitzeroptforfiltername(sednum,filtername) bad number argument :: "
+            print "sednum = ",sednum
+            print "filtername =", filtername  
             return None
-    
-
+    #---------------------------------------------------------------------------------------      
     def compute_magnitude_bias(self,dt=EXPOSURE):
         '''
         compute_magnitude_bias(self,dt=EXPOSURE):
-        
-            Compute magntitude bias with respect to zero point for each atmosphere event
-            Notice no error computed by now
+            6th Stage : Compute the magnitude bias
+            ----------------------------------------      
+            Compute magnitude bias with respect to zero point for each atmosphere event
+            Notice no error computed by now.
+            
+            In the end, the magnitude_bias array is transformed in numpy array of 3 indexes
         
         '''
-        if len(self.magnitude) == 0:
-            self.compute_magnitude(dt)
-        if len(self.magnit_zeropt) == 0:
-            self.compute_magnit_zeropt()
+  
+        if len(self.magnit_zeropt) == 0:                # check zero-point has been computed
+            self.compute_magnit_zeropt(dt)
             
-        self.magnit_bias =  []
+        self.magnit_bias =  []                          # init bias
         self.magnit_bias_err =  [] 
         
-        # LOOP ON SED
+        # LOOP ON all SED
         for sednum in  np.arange(self.NBSED): 
             # loop on each event of a sed 
             all_magnitudes_all_events_thatsed=self.magnitude[sednum]
             all_event_mag_biased = [] 
             
-            # loop on atmospheric events magnitudes
+            # LOOP  on atmospheric events magnitudes
             NbEVT=-1
             for mag_event in all_magnitudes_all_events_thatsed :
                 NbEVT+=1
                 all_band_mag_biased = []
-                # loop on color
+                #LOOP on bands U G R I Z Y
                 for iband in np.arange(NBBANDS):
-                #loop on bands U G R I Z Y
+                    # subtract the magnitude to that of the zero point
+                    #----------------------------------------------------------
                     thebias=mag_event[iband]-self.magnit_zeropt[NbEVT,iband]
                     
                     all_band_mag_biased.append(thebias)
@@ -686,25 +780,30 @@ class LSSTObservation(object):
     #---------------------------------------------------------------------------------------------------------- 
     def compute_colors(self,dt=EXPOSURE):
         '''
-        compute_colors(self,dt=EXPOSURE)
+        compute_colors(self,dt=EXPOSURE):
+            7th stage : Compute the colors :
+            --------------------------------
+            Compute the colors for all SED-Atm-Events
+            
         '''
-        if len(self.magnitude) == 0:
+        if len(self.magnitude) == 0:                  # check if magnitudes exists
             print 'compute_colors :: len(self.magnitude) = ',self.magnitude
             print 'compute_color :: ==> self.magnitude()'
             self.compute_magnitude(dt)
             
-        self.color=[]
+        self.colors=[]            # initialisation of colors
+        
+        
         # LOOP on SED
         for sednum in  np.arange(self.NBSED): 
-            # loop on each event of a sed 
             all_magnitudes_all_events_thatsed=self.magnitude[sednum]
             all_event_colors = [] 
-            # loop on atmospheric events magntitues
+            # LOOP  on atmospheric events magntitues
             for mag_event in all_magnitudes_all_events_thatsed :
                 all_band_colors = []
-                # loop on color
+                # LOOP on BANDS U, G, R, I, Z, and not Y   
                 for iband in np.arange(NBCOLORS):
-                #loop on bands U G R I Z Y
+                    # Subtract the magnitudes
                     thecolor=mag_event[iband]-mag_event[iband+1]
                     all_band_colors.append(thecolor)
                 all_event_colors.append(all_band_colors) 
@@ -715,32 +814,32 @@ class LSSTObservation(object):
     
     
     
-        #----------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------
     def show_colors_0pt(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
             '''
-            show_color(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE)
+            show_color_0pt(index0,xarray,title,xtitle,figname,dt=EXPOSURE):
             
             input:
                 index0 : index of colors with the smallest wavelength
-                xarray: array in X ex  VAOD, PWV
+                xarray: array in X ex  VAOD, PWV, or even airmass
+            output:
+                Show the zero-pont color difference wrt the reference atm-am condition
+                
             
             '''
             
-            # loop on all sed
+            if len(self.magnit_zeropt) == 0:       # check if magnit_zeropt has been calculated
+                self.compute_magnit_zeropt(dt)
             
-            if len(self.magnit_zeropt) == 0:
-                self.compute_magnit_zeropt()
-            
-            
-    
-            
+            # LOOP ON colors
             for icol in np.arange(NBCOLORS):
                 thelabel=number_to_color[icol]
-                
+                # zero-point color 
                 col=self.magnit_zeropt[:,icol]- self.magnit_zeropt[:,icol+1] # all colors for all atm event and all colors
+                # zero-point color for reference atmospheric-am conditions
                 col0=self.magnit_zeropt[index0,icol]-self.magnit_zeropt[index0,icol+1]
                 
-                deltacol=col-col0
+                deltacol=col-col0 # color difference relative to reference condition
             
                 plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=2,label=thelabel)
                   
@@ -766,7 +865,7 @@ class LSSTObservation(object):
             
             input:
                 index0 : index of colors with the smallest wavelength
-                xarray: array in X ex  VAOD, PWV
+                xarray: array in X ex  VAOD, PWV or Airmass
             
             '''
             
@@ -776,15 +875,15 @@ class LSSTObservation(object):
                 print 'show_color :: ==> self.colors()'
                 self.compute_colors(dt)
             
-            
+            # LOOP on SED
             for ised in np.arange(self.NBSED):
                 col=self.colors[ised,:,:] # all colors for all atm event and all colors
                 col0=self.colors[ised,index0,:]  # all colors for index0 atm event and all colors
                 
-                # loop on colors for plotting
+                # LOOP on colors for plotting
                 for icol in np.arange(NBCOLORS):
                     thelabel=number_to_color[icol]
-                    deltacol=col[:,icol]-col0[icol]
+                    deltacol=col[:,icol]-col0[icol]   # color difference relative to reference condition
                     if(ised==0):
                         plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=1,label=thelabel)
                     else:
@@ -802,67 +901,74 @@ class LSSTObservation(object):
             
     
     
-    
     #----------------------------------------------------------------------------------------------------------
-    def compute_color_bias(self,dt=EXPOSURE):
+    def compute_colors_bias(self,dt=EXPOSURE):
         '''
-        compute_colors_bias(self,dt=EXPOSURE)
+        compute_colors_bias(self,dt=EXPOSURE):
+            8th stage : Compute the colors bias :
+            ---------------------------------------
+            Compute biased colors
+            The bias is always taken relative to the zero-point.
         
         
         '''
+        # check if mangitude bias has been calculated
         if len(self.magnit_bias) == 0:
-            print 'compute_colors :: len(self.magnit_bias) = ',self.magnit_bias
-            print 'compute_color :: ==> self.magnitude()'
+            print 'compute_colors_bias :: len(self.magnit_bias) = ',self.magnit_bias
+            print 'compute_color_bias :: ==> self.compute_magnit_bias()'
             self.compute_magnit_bias(dt)
   
 
           
-        self.color_bias=[]
+        self.colors_bias=[]                  # init color bias
         # LOOP on SED
         for sednum in  np.arange(self.NBSED): 
-            # loop on each event of a sed 
-            all_magnit_bias_all_events_thatsed=self.magnit_bias[sednum]
+            all_magnit_bias_all_events_thatsed=self.magnit_bias[sednum] # select biased magnitudes
             all_event_colors_bias = [] 
-            # loop on atmospheric events magntitues
+            # LOOP on atmospheric-am events biased magnitudes
             for mag_event in all_magnit_bias_all_events_thatsed :
                 all_band_colors_bias = []
-                # loop on color
+                # loop on COLORS U,G,R?i?Z and not Y
                 for iband in np.arange(NBCOLORS):
-                #loop on bands U G R I Z Y
+                     # Compute biased colors by magnitude subtraction one band wrt next one
+                     #-----------------------------------------------------------------------------
                     thecolor_bias=mag_event[iband]-mag_event[iband+1]
                     all_band_colors_bias.append(thecolor_bias)
                 all_event_colors_bias.append(all_band_colors_bias) 
-            self.color_bias.append(all_event_colors_bias) 
-        self.color_bias=np.array(self.color_bias)  # at the end, the array is converted in numpy array
-        return self.color_bias
+            self.colors_bias.append(all_event_colors_bias) 
+        self.colors_bias=np.array(self.colors_bias)  # at the end, the array is converted in numpy array
+        return self.colors_bias
     #----------------------------------------------------------------------------------------------------------
     
     #----------------------------------------------------------------------------------------------------------
-    def show_color_bias(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
+    def show_colors_bias(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
             '''
             show_color_bias(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE)
             
             input:
                 index0 : index of colors with the smallest wavelength
                 xarray: array in X ex  VAOD, PWV
-            
+            output:
+                Show the colors wrt atm-am condition reference
+                in X : the conditions
+                in Y : Delta-Cor
             '''
             
-            # loop on all sed
-            if len(self.colors) == 0:
-                print 'show_color_bias :: len(self.colors) = ',self.colors
+            # Check of colors_bias has been computed
+            if len(self.colors_bias) == 0:
+                print 'show_color_bias :: len(self.colors) = ',self.colors_bias
                 print 'show_color_bias :: ==> self.colors_bias()'
                 self.compute_colors_bias(dt)
             
-            
+            # LOOP on all SED:
             for ised in np.arange(self.NBSED):
-                col=self.color_bias[ised,:,:] # all colors for all atm event and all colors
-                col0=self.color_bias[ised,index0,:]  # all colors for index0 atm event and all colors
+                col=self.colors_bias[ised,:,:] # all colors for all atm event and all colors
+                col0=self.colors_bias[ised,index0,:]  # all colors for index0 of reference in  atm event 
                 
-                # loop on colors for plotting
+                # LOOP on colors for plotting
                 for icol in np.arange(NBCOLORS):
                     thelabel=number_to_color[icol]
-                    deltacol=col[:,icol]-col0[icol]
+                    deltacol=col[:,icol]-col0[icol] # Delta Col in Y
                     if(ised==0):
                         plt.plot(xarray,deltacol,color=mpl_colors_col[icol],lw=1,label=thelabel)
                     else:
@@ -881,21 +987,33 @@ class LSSTObservation(object):
 
     #----------------------------------------------------------------------------------------------------------
            
-    def ShowColorTrajectory(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
+    def ShowColorBiasTrajectory(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
         '''
-        ShowColorTrajectory(Index_Start,xarray,xlabel,ylabel,title,figname,dt=EXPOSURE)
-        input:
-                index0: reference index (atm)
+        ShowColorBiasTrajectory(index0,Index_Start,xarray,xlabel,ylabel,title,figname,dt=EXPOSURE):
+            input:
+                index0: reference index on atm-am conditions
                 Index_Start : index of colors with the smallest wavelength
                 xarray: array in X ex  VAOD, PWV
+            output:
+                2D-plot of colors_bias , with each point corresponding to 1 SED-1-conditions.
+                The colors of plots is linked to the condition.
+                example 
+                Plot of  G-R vs U-G points, one per SED-condition, the colors of points is related to cond
+            
         
         
         '''
     
-    
+        # define the max color
         Index_Stop=Index_Start+3
     
+        # reserve a table of ColorDiff in 3 indexes
+        # - Index 1 : first or second color
+        # - Index 2 : SED number
+        # - Index 3 : each atmospheric-am condition
         ColorDiff=np.zeros([2,self.NBSED,len(xarray)])
+        
+        # the x-array indeed will be colors in this 2D plot
         x= xarray
         for i in range(len(x)):
             c = cmap(int(np.rint(x[i] / x.max() * 255)))
@@ -904,26 +1022,26 @@ class LSSTObservation(object):
 
         fig = plt.figure(figsize=(15, 15))    
     
+        # LOOP on SED to fill array ColorDiff[icol,ised,icond]
         for ised in np.arange(self.NBSED):
+            # LOOP on the two selected colors for plotting along X and Y axis
             for icol in np.arange(Index_Start,Index_Stop-1):
                 ColorIndex=icol-Index_Start
-                #mag1=self.get_magnitzeroptforfilternum(ised,icol)
-                #mag2=self.get_magnitzeroptforfilternum(ised,icol+1)
-                #deltamag= deltamag=mag1-mag2 - (mag1[0]-mag2[0])
-                #ColorDiff[ColorIndex,ised,:]=deltamag
+                              
+                col=self.colors_bias[ised,:,:]        # get biased colors for all atm event and all colors
+                col0=self.colors_bias[ised,index0,:]  # get biased colors for the index0 reference atm event 
+                deltacol=col[:,icol]-col0[icol]       # compute the deltacol
                 
-                col=self.color_bias[ised,:,:] # all colors for all atm event and all colors
-                col0=self.color_bias[ised,index0,:]  # all colors for index0 atm event and all colors
-                deltacol=col[:,icol]-col0[icol]
-                
-                ColorDiff[ColorIndex,ised,:]=deltacol
+                ColorDiff[ColorIndex,ised,:]=deltacol # fill the array
 
+        # LOOP on SED to plot colors in the 2D plot of colors
         for ised in np.arange(self.NBSED):
-            i=0
+            i=0  # index of atm-sed condition
+            # LOOP on atm-am-conditions 
             for xel in xarray:
-                c = cmap(int(np.rint(x[i] / x.max() * 255)))
+                c = cmap(int(np.rint(x[i] / x.max() * 255)))   # define the color of the point in 2D plot
                 plt.plot(ColorDiff[0,ised,i],ColorDiff[1,ised,i],'o', markersize=20, mfc=c, mec=c)
-                i+=1    
+                i+=1   # increase index on atm-sed condition 
             
             plt.plot([-0.005,0.005],[0.005,0.005],'k:',lw=2)
             plt.plot([-0.005,0.005],[-0.005,-0.005],'k:',lw=2)
@@ -931,8 +1049,10 @@ class LSSTObservation(object):
             plt.plot([-0.005,-0.005],[-0.005,0.005],'k:',lw=2)
     
         plt.grid()
-        plt.xlabel(number_to_color[Index_Start],fontsize=20,weight='bold')
-        plt.ylabel(number_to_color[Index_Start+1],fontsize=20,weight='bold')
+        xtitle=number_to_color[Index_Start]+' color bias'
+        ytitle=number_to_color[Index_Start+1]+' color bias'
+        plt.xlabel(xtitle,fontsize=20,weight='bold')
+        plt.ylabel(ytitle,fontsize=20,weight='bold')
         plt.title(title,fontsize=30,weight='bold')
 
         rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
@@ -947,22 +1067,34 @@ class LSSTObservation(object):
  
  
     #----------------------------------------------------------------------------------------------------------
-    # colorindex 0 : U
-    #            1 : G
-    #            2 : R
 
-    def ShowColorTrajectoryNew(self,index0,Index_Start,xarray,zoom,zlabel,title,figname,dt=EXPOSURE):
+    def ShowColorTrajectory(self,index0,Index_Start,xarray,zoom,zlabel,title,figname,dt=EXPOSURE):
         '''
-        ShowColorTrajectoryNew(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE)
+        ShowColorTrajectory(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
+            input:
+                index0: reference index on atm-am conditions
+                Index_Start : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
+                zoom :
+            output:
+                2D-plot of colors shifted by color-bias, with each point corresponding to 1 SED-1-conditions.
+                The colors of plots is linked to the condition.
+                example 
+                Plot of  G-R vs U-G points, one per SED-condition, the colors of points is related to cond
         
         '''
-        #Index_Start=0
+         # define the max color
         Index_Stop=Index_Start+3
     
-    #
+        # reserve TWO tables of ColorDiff in 3 indexes
+        # - Index 1 : first or second color
+        # - Index 2 : SED number
+        # - Index 3 : each atmospheric-am condition
+        
         ColorDiff=np.zeros([2,self.NBSED,len(xarray)])
         ColorDiff2=np.zeros([2,self.NBSED,len(xarray)])
     
+         # the x-array indeed will be colors in this 2D plot
         x= xarray
         for i in range(len(x)):
             c = cmap(int(np.rint(x[i] / x.max() * 255)))
@@ -971,46 +1103,37 @@ class LSSTObservation(object):
 
         fig = plt.figure(figsize=(15, 15))    
     
-        # loop on galxy SED
+        # LOOP on SED
         for ised in np.arange(self.NBSED):
-            # loop on filters
+            # LOOP on the tow colors to fill the two Tables
             for icol in np.arange(Index_Start,Index_Stop-1):
             
                 ColorIndex=icol-Index_Start
-                #mag1=self.get_magnitzeroptforfilternum(ised,icol)
-                #mag2=self.get_magnitzeroptforfilternum(ised,icol+1)
-                #deltamag= deltamag=mag1-mag2 - (mag1[0]-mag2[0])
-                #ColorDiff[ColorIndex,ised,:]=deltamag*30
                 
-                col=self.color_bias[ised,:,:] # all colors for all atm event and all colors
-                col0=self.color_bias[ised,index0,:]  # all colors for index0 atm event and all colors
-                deltacol=col[:,icol]-col0[icol]
-                ColorDiff[ColorIndex,ised,:]=deltacol*zoom
                 
-
-                #mag1_0=self.get_magnitudeforfilternum(ised,icol)
-                #mag2_0=self.get_magnitudeforfilternum(ised,icol+1) 
-                #deltamag_0=mag1_0-mag2_0
-                #ColorDiff2[ColorIndex,ised,:]=deltamag_0
-                
-                ColorDiff2[ColorIndex,ised,:]=self.colors[ised,:,icol]
+                col=self.colors_bias[ised,:,:]         # get biased colors for all atm event and all colors
+                col0=self.colors_bias[ised,index0,:]   # get biased colors for the index0 reference atm event 
+                deltacol=col[:,icol]-col0[icol]        # compute the deltacol
+                ColorDiff[ColorIndex,ised,:]=deltacol*zoom             # exagerate the deltacol              
+                ColorDiff2[ColorIndex,ised,:]=self.colors[ised,:,icol] # original color of the source
+         
+        #LOOP on SED to plot colors in the 2D plot of colors
+        for ised in np.arange(self.NBSED):
+            i=0 # index of atm condition
+            # LOOP on atm-am-conditions 
+            for xel in xarray:
+                c = cmap(int(np.rint(x[i] / x.max() * 255)))
+                plt.plot(ColorDiff[0,ised,i]+ColorDiff2[0,ised,0],ColorDiff[1,ised,i]+ColorDiff2[1,ised,0],'o', markersize=10, mfc=c, mec=c)
+                i+=1    # increase index on sed condition
             
-            for ised in np.arange(self.NBSED):
-                i=0
-                for xel in xarray:
-                    c = cmap(int(np.rint(x[i] / x.max() * 255)))
-                    plt.plot(ColorDiff[0,ised,i]+ColorDiff2[0,ised,0],ColorDiff[1,ised,i]+ColorDiff2[1,ised,0],'o', markersize=10, mfc=c, mec=c)
-                    i+=1    
-            
-            #plt.plot([-0.005,0.005],[0.005,0.005],'k:',lw=2)
-            #plt.plot([-0.005,0.005],[-0.005,-0.005],'k:',lw=2)
-            #plt.plot([0.005,0.005],[-0.005,0.005],'k:',lw=2)
-            #plt.plot([-0.005,-0.005],[-0.005,0.005],'k:',lw=2)
     
         plt.grid()
 
-        plt.xlabel(number_to_color[Index_Start],fontsize=20,weight='bold')
-        plt.ylabel(number_to_color[Index_Start+1],fontsize=20,weight='bold')        
+        xtitle=number_to_color[Index_Start]+' color '
+        ytitle=number_to_color[Index_Start+1]+' color '
+
+        plt.xlabel(xtitle,fontsize=20,weight='bold')
+        plt.ylabel(ytitle,fontsize=20,weight='bold')        
         plt.title(title,fontsize=30,weight='bold')
         plt.xlim(1,5)
         plt.ylim(-2,2)
@@ -1023,7 +1146,89 @@ class LSSTObservation(object):
         plt.savefig(figname)      
         #----------------------------------------------------------------------------------------------------------   
     
+  
+
+    def ShowColorTrajectoryVect(self,index0,Index_Start,xarray,zoom,zlabel,title,figname,dt=EXPOSURE):
+        '''
+        ShowColorTrajectoryVect(self,index0,Index_Start,xarray,zlabel,title,figname,dt=EXPOSURE):
+            input:
+                index0: reference index on atm-am conditions
+                Index_Start : index of colors with the smallest wavelength
+                xarray: array in X ex  VAOD, PWV
+                zoom :
+            output:
+                2D-plot of colors shifted by color-bias, with each point corresponding to 1 SED-1-conditions.
+                The colors of plots is linked to the condition.
+                example 
+                Plot of  G-R vs U-G points, one per SED-condition, the colors of points is related to cond
+        
+        '''
+         # define the max color
+        Index_Stop=Index_Start+3
     
+        # reserve TWO tables of ColorDiff in 3 indexes
+        # - Index 1 : first or second color
+        # - Index 2 : SED number
+        # - Index 3 : each atmospheric-am condition
+        
+        ColorDiff=np.zeros([2,self.NBSED,len(xarray)])
+        ColorDiff2=np.zeros([2,self.NBSED,len(xarray)])
+    
+         # the x-array indeed will be colors in this 2D plot
+        x= xarray
+        for i in range(len(x)):
+            c = cmap(int(np.rint(x[i] / x.max() * 255)))
+
+        norm = mpl.colors.Normalize(vmin=x.min(), vmax=x.max())
+
+        fig = plt.figure(figsize=(15, 15))    
+    
+        # LOOP on SED
+        for ised in np.arange(self.NBSED):
+            # LOOP on the tow colors to fill the two Tables
+            for icol in np.arange(Index_Start,Index_Stop-1):
+            
+                ColorIndex=icol-Index_Start
+                
+                
+                col=self.colors_bias[ised,:,:]         # get biased colors for all atm event and all colors
+                col0=self.colors_bias[ised,index0,:]   # get biased colors for the index0 reference atm event 
+                deltacol=col[:,icol]-col0[icol]        # compute the deltacol
+                ColorDiff[ColorIndex,ised,:]=deltacol*zoom             # exagerate the deltacol              
+                ColorDiff2[ColorIndex,ised,:]=self.colors[ised,:,icol] # original color of the source
+         
+        #LOOP on SED to plot colors in the 2D plot of colors
+        for ised in np.arange(self.NBSED):
+            # LOOP on atm-am-conditions 
+            for i in np.arange(len(xarray)-1):
+                c = cmap(int(np.rint(x[i] / x.max() * 255)))
+                X=ColorDiff[0,ised,i]+ColorDiff2[0,ised,0]
+                nextX=ColorDiff[0,ised,i+1]+ColorDiff2[0,ised,0]
+                Y=ColorDiff[1,ised,i]+ColorDiff2[1,ised,0]
+                nextY=ColorDiff[1,ised,i+1]+ColorDiff2[1,ised,0]
+                U=nextX-X
+                V=nextY-Y
+                plt.quiver(X,Y, U, V,scale_units='xy', angles='xy', scale=1, color=c)
+                
+    
+        plt.grid()
+
+        xtitle=number_to_color[Index_Start]+' color '
+        ytitle=number_to_color[Index_Start+1]+' color '
+
+        plt.xlabel(xtitle,fontsize=20,weight='bold')
+        plt.ylabel(ytitle,fontsize=20,weight='bold')        
+        plt.title(title,fontsize=30,weight='bold')
+        plt.xlim(1,5)
+        plt.ylim(-2,2)
+
+
+        rect = 0.91,0.1,0.02,0.8   #  4-length sequence of [left, bottom, width, height] quantities.     
+        ax1 = fig.add_axes(rect,label=zlabel)
+        cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,norm=norm,orientation='vertical')
+        cb1.set_label(zlabel, rotation=90,fontsize=20,weight='bold')
+        plt.savefig(figname)      
+        #----------------------------------------------------------------------------------------------------------
     
 #-----------------------------------------------------------------------------------------------
 
