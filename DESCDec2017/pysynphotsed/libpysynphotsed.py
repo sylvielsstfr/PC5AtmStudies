@@ -79,7 +79,18 @@ def get_all_ck04models():
         
         all_sed.append(all_sub_sed)
     return all_sed
-#---------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------  
+def get_many_ck04models():
+    
+    all_Temp=np.linspace(3500.,50000.,50)
+    all_sed=[]
+    
+    for temp in all_Temp:
+        set_of_sed=get_ck04models(temp)
+        all_sed=np.concatenate((all_sed,set_of_sed))
+        
+    return all_sed    
+
 #-------------------------------------------------------------------------------------------
 def get_k93models(temp):
     all_sed=[]
@@ -264,8 +275,103 @@ def get_all_thermalbb(N=10,T0=6000.,sigT=100.):
     return all_sed
 
 #------------------------------------------------------------------------------------------
+def get_all_phoenix():
+    
+     all_sed=[]
+     
+     # define the top directory
+     SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[4])
+     
+     filelist1=os.listdir(SEDfile_dir+'/phoenixm00') 
+     filelist2=os.listdir(SEDfile_dir+'/phoenixm05') 
+     filelist3=os.listdir(SEDfile_dir+'/phoenixm10') 
+     filelist4=os.listdir(SEDfile_dir+'/phoenixm15') 
+     filelist5=os.listdir(SEDfile_dir+'/phoenixm20') 
+     filelist6=os.listdir(SEDfile_dir+'/phoenixm25') 
+     filelist7=os.listdir(SEDfile_dir+'/phoenixm30') 
+     filelist8=os.listdir(SEDfile_dir+'/phoenixm35') 
+     filelist9=os.listdir(SEDfile_dir+'/phoenixm40') 
+     filelist10=os.listdir(SEDfile_dir+'/phoenixp03') 
+     filelist11=os.listdir(SEDfile_dir+'/phoenixp05') 
+     
+     filelist1_group = [os.path.join('phoenixm00',f) for f in filelist1 if f.endswith('.fits')]
+     filelist2_group = [os.path.join('phoenixm05',f) for f in filelist2 if f.endswith('.fits')]
+     filelist3_group = [os.path.join('phoenixm10',f) for f in filelist3 if f.endswith('.fits')]
+     filelist4_group = [os.path.join('phoenixm15',f) for f in filelist4 if f.endswith('.fits')]
+     filelist5_group = [os.path.join('phoenixm20',f) for f in filelist5 if f.endswith('.fits')]
+     filelist6_group = [os.path.join('phoenixm25',f) for f in filelist6 if f.endswith('.fits')]
+     filelist7_group = [os.path.join('phoenixm30',f) for f in filelist7 if f.endswith('.fits')]
+     filelist8_group = [os.path.join('phoenixm35',f) for f in filelist8 if f.endswith('.fits')]
+     filelist9_group = [os.path.join('phoenixm40',f) for f in filelist9 if f.endswith('.fits')]
+     filelist10_group = [os.path.join('phoenixp03',f) for f in filelist10 if f.endswith('.fits')]
+     filelist11_group = [os.path.join('phoenixp05',f) for f in filelist11 if f.endswith('.fits')]
+     
+     filelist_group=filelist1_group + filelist2_group + filelist3_group + filelist4_group + filelist5_group+ \
+filelist6_group + filelist7_group + filelist8_group + filelist9_group +filelist10_group+filelist11_group
+     
+     fits_files=filelist_group
+     
+     
+     obj_headers = []
+     obj_files = []
+     for filename in fits_files:
+         index=0
+         if re.search('fits',filename):  #example of filename filter
+             index+=1
+             fullfilename = os.path.join(SEDfile_dir,filename)
+             hdr = fits.getheader(fullfilename)
+             obj_headers.append(hdr)
+             obj_files.append(filename)
+     
+        
+     obj_temperatures = []
+     obj_log_z_all = []
+     index=0
+     for hdr in obj_headers: 
+        obj_temp=float(obj_headers[index]['TEFF'])
+        obj_logz=float(obj_headers[index]['LOG_Z'])
+        obj_temperatures.append(obj_temp)
+        obj_log_z_all.append(obj_logz)
+        index+=1   
+      
+        
+     obj_names2 = []
+     index=0
+     for thefile in fits_files:
+         #thenames=re.findall('^bk_([a-z][0-9]+).fits$',thefile)
+         thenames=re.findall('([a-z].+_[0-9].+).fits$',thefile) 
+         if(len(thenames)>0):
+             obj_names2.append(thenames[0])
+         else:
+             print 'bad file ',thefile
+         index+=1
+        
+     obj_names=obj_names2
+     obj_files=filelist_group    
+        
+     #objames_and_objfiles = zip(obj_names, obj_files)
+     #objames_and_objtemp = zip(obj_names, obj_temperatures)
+     objtemp_and_objlogz = zip(obj_temperatures,obj_log_z_all)  
+           
+     #all_logg=np.array([0.0,0.5,1.,1.5,2.,2.5,3.,3.5,4.,4.5])
+     #all_logg=np.array([0.0,1.,2.,3.,4.])
+     all_logg=np.array([0.0])
+     
+     index=0
+     for temp,logz in objtemp_and_objlogz:
+         if index%100==0:
+             print 'phoenix star : T=',temp,' metal=', logz
+         for logg in all_logg:        
+             sed = S.Icat('phoenix', temp,logz,logg)    
+             sed.convert('flam') # to be sure every spectrum is in flam unit
+             all_sed.append(sed)
+             index+=1
+     
+        
+     return all_sed
 
-def get_all_thermalbb_flatT(N=10,TMIN=3000.,TMAX=25000.):
+#---------------------------------------------------------------------------------------------
+def get_all_thermalbb_flatT(N=100,TMIN=3000.,TMAX=50000.):
     
     all_sed=[]   
     
@@ -412,22 +518,42 @@ if __name__ == "__main__":
     
     #plot_allsed_starmodels(all_sed,"ck04models","ck04models.png")
     
-    all_sed=get_all_calspec_hd()
-    plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_lin.png',yscale='lin',YMIN=0,YMAX=0.4e-10)
-    plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_log.png',yscale='log',YMIN=1e-14,YMAX=1e-10)
+    Flag_CALSPEC_HD=False
+    Flag_BC95_Z3=False
+    Flag_KC93_Z3=False
+    Flag_THERMALBB=False
+    Flag_PHOENIX=False
+    Flag_CK04=True
+    
+    if Flag_CALSPEC_HD:
+        all_sed=get_all_calspec_hd()
+        plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_lin.png',yscale='lin',YMIN=0,YMAX=0.4e-10)
+        plot_allsed(all_sed,'SED of CALSPEC stars','calspec_hd_log.png',yscale='log',YMIN=1e-14,YMAX=1e-10)
 
     
-    
-    all_sed=get_all_bc95(z=3)
-    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',XMIN=0,XMAX=11000.,yscale='lin')
-    plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',XMIN=0,XMAX=11000.,yscale='log')
-    
-    
-    
-    all_sed=get_all_kc96(z=3)
-    plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_lin.png',yscale='lin')
-    plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_log.png',yscale='log')
+    if Flag_BC95_Z3:
+        all_sed=get_all_bc95(z=3)
+        plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',XMIN=0,XMAX=11000.,yscale='lin')
+        plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',XMIN=0,XMAX=11000.,yscale='log')
     
     
+    if Flag_KC93_Z3:
+        all_sed=get_all_kc96(z=3)
+        plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_log.png',yscale='log')
     
+    if Flag_THERMALBB:
+        all_sed=get_all_thermalbb_flatT()
+        plot_allsed(all_sed,'SED of thermal BB','star_thermalbb_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of thermal BB','star_thermalbb_log.png',yscale='log')
+    
+    if Flag_PHOENIX:
+        all_sed=get_all_phoenix()
+        plot_allsed(all_sed,'SED of Phoenix stars','star_phoenix_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of Phoenix stars','star_phoenix_log.png',yscale='log')
+        
+    if Flag_CK04:
+        all_sed=get_many_ck04models()
+        plot_allsed(all_sed,'SED of ck04 stars','star_ck04_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of ck04 stars','star_ck04_log.png',yscale='log')
     

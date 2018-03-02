@@ -1298,8 +1298,8 @@ class LSSTObservation(object):
     
         plt.grid()
 
-        xtitle=number_to_color[Index_Start]+'relative color shift (mag)'
-        ytitle=number_to_color[Index_Start+1]+'relative color shift (mag)'
+        xtitle=number_to_color[Index_Start]+' relative color shift (mag)'
+        ytitle=number_to_color[Index_Start+1]+' relative color shift (mag)'
 
         plt.xlabel(xtitle,fontsize=20,weight='bold')
         plt.ylabel(ytitle,fontsize=20,weight='bold')        
