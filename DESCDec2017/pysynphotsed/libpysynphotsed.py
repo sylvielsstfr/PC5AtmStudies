@@ -150,6 +150,58 @@ def get_all_phoenixmodels():
         
         all_sed.append(all_sub_sed)
     return all_sed
+#------------------------------------------------------------------------------------------
+def get_all_pickle():
+    
+    all_sed=[]   # common SED container
+    
+    SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[9],'dat_uvi')
+    fits_files = [f for f in os.listdir(SEDfile_dir) if f.endswith('.fits')]
+    fits_files.remove('pickles.fits')
+    
+    obj_headers = []
+    obj_files = []
+    for filename in fits_files:
+        index=0
+        if re.search('fits',filename):  #example of filename filter
+            index+=1
+            fullfilename = os.path.join(SEDfile_dir,filename)
+            hdr = fits.getheader(fullfilename)
+            obj_headers.append(hdr)
+            obj_files.append(filename)
+            
+    obj_names2 = []
+    index=0
+    for thefile in fits_files:
+        #thenames=re.findall('^bk_([a-z][0-9]+).fits$',thefile)
+        thenames=re.findall('^(.*).fits$',thefile) 
+        if(len(thenames)>0):
+            obj_names2.append(thenames[0])
+        else:
+            print 'bad file ',thefile
+        index+=1
+        
+    obj_names=obj_names2
+    objames_and_objfiles = zip(obj_names, obj_files)
+    OBJDict= {}
+    for obj,thefile in objames_and_objfiles:
+        #print obj,': '
+        OBJDict[obj]=thefile
+        #print OBJDict[obj] 
+        
+    for keyobj in OBJDict:
+        the_file=OBJDict[keyobj]
+        
+        selected_file=the_file
+        selected_fullfile=os.path.join(SEDfile_dir,selected_file)
+        
+        sed=S.FileSpectrum(selected_fullfile)
+        sed.convert('flam') # to be sure every spectrum is in flam unit
+        all_sed.append(sed)
+        
+    return all_sed
+      
+    
 #---------------------------------------------------------------------------------------
 def plot_allsed_starmodels(all_sed,thetitle,figfilename,yscale='lin',XMIN=3200.,XMAX=10000.,YMIN=0,YMAX=0):
     
@@ -523,7 +575,8 @@ if __name__ == "__main__":
     Flag_KC93_Z3=False
     Flag_THERMALBB=False
     Flag_PHOENIX=False
-    Flag_CK04=True
+    Flag_CK04=False
+    Flag_PICKLE=True
     
     if Flag_CALSPEC_HD:
         all_sed=get_all_calspec_hd()
@@ -556,4 +609,10 @@ if __name__ == "__main__":
         all_sed=get_many_ck04models()
         plot_allsed(all_sed,'SED of ck04 stars','star_ck04_lin.png',yscale='lin')
         plot_allsed(all_sed,'SED of ck04 stars','star_ck04_log.png',yscale='log')
+        
+    if Flag_PICKLE:  
+        all_sed=get_all_pickle()
+        plot_allsed(all_sed,'SED of pickle stars','star_pickle_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of pickle stars','star_pickle_log.png',yscale='log')
+        
     
