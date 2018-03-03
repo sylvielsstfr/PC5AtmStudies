@@ -572,11 +572,11 @@ if __name__ == "__main__":
     
     Flag_CALSPEC_HD=False
     Flag_BC95_Z3=False
-    Flag_KC93_Z3=False
+    Flag_KC93_Z3=True
     Flag_THERMALBB=False
     Flag_PHOENIX=False
     Flag_CK04=False
-    Flag_PICKLE=True
+    Flag_PICKLE=False
     
     if Flag_CALSPEC_HD:
         all_sed=get_all_calspec_hd()
