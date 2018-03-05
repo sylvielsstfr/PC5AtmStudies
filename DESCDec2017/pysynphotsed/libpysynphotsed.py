@@ -413,7 +413,8 @@ filelist6_group + filelist7_group + filelist8_group + filelist9_group +filelist1
      for temp,logz in objtemp_and_objlogz:
          if index%100==0:
              print 'phoenix star : T=',temp,' metal=', logz
-         for logg in all_logg:        
+         for logg in all_logg:      
+             #Icat(model,temp,logz,logg)
              sed = S.Icat('phoenix', temp,logz,logg)    
              sed.convert('flam') # to be sure every spectrum is in flam unit
              all_sed.append(sed)
@@ -423,6 +424,132 @@ filelist6_group + filelist7_group + filelist8_group + filelist9_group +filelist1
      return all_sed
 
 #---------------------------------------------------------------------------------------------
+def get_many_k93model():
+
+    SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[8])
+    all_sed=[]
+
+    filelist1=os.listdir(SEDfile_dir+'/km01') 
+    filelist2=os.listdir(SEDfile_dir+'/km02') 
+    filelist3=os.listdir(SEDfile_dir+'/km03') 
+    filelist4=os.listdir(SEDfile_dir+'/km05') 
+    filelist5=os.listdir(SEDfile_dir+'/km10') 
+    filelist6=os.listdir(SEDfile_dir+'/km20') 
+    filelist7=os.listdir(SEDfile_dir+'/km25') 
+    filelist8=os.listdir(SEDfile_dir+'/km30') 
+    filelist9=os.listdir(SEDfile_dir+'/km35') 
+    filelist10=os.listdir(SEDfile_dir+'/km40') 
+    filelist11=os.listdir(SEDfile_dir+'/km45') 
+    filelist12=os.listdir(SEDfile_dir+'/km50') 
+    filelist13=os.listdir(SEDfile_dir+'/kp00') 
+    filelist14=os.listdir(SEDfile_dir+'/kp01') 
+    filelist15=os.listdir(SEDfile_dir+'/kp02') 
+    filelist16=os.listdir(SEDfile_dir+'/kp03') 
+    filelist17=os.listdir(SEDfile_dir+'/kp05') 
+    filelist18=os.listdir(SEDfile_dir+'/kp10') 
+
+
+    filelist1.remove('AA_README')
+    filelist2.remove('AA_README')
+    filelist3.remove('AA_README')
+    filelist4.remove('AA_README')
+    filelist5.remove('AA_README')
+    filelist6.remove('AA_README')
+    filelist7.remove('AA_README')
+    filelist8.remove('AA_README')
+    filelist9.remove('AA_README')
+    filelist10.remove('AA_README')
+    filelist11.remove('AA_README')
+    filelist12.remove('AA_README')
+    filelist13.remove('AA_README')
+    filelist14.remove('AA_README')
+    filelist15.remove('AA_README')
+    filelist16.remove('AA_README')
+    filelist17.remove('AA_README')
+    filelist18.remove('AA_README')
+    
+    filelist=filelist1 + filelist2 + filelist3 + filelist4 + filelist5+ filelist6 + filelist7 + filelist8 + filelist9 + \
+filelist10 + filelist11 + filelist12 + filelist13 + filelist14 + filelist15+ filelist16 + filelist17 + filelist18 
+
+    filelist1_group = [os.path.join('km01',f) for f in filelist1 if f.endswith('.fits')]
+    filelist2_group = [os.path.join('km02',f) for f in filelist2 if f.endswith('.fits')]
+    filelist3_group = [os.path.join('km03',f) for f in filelist3 if f.endswith('.fits')]
+    filelist4_group = [os.path.join('km05',f) for f in filelist4 if f.endswith('.fits')]
+    filelist5_group = [os.path.join('km10',f) for f in filelist5 if f.endswith('.fits')]
+    filelist6_group = [os.path.join('km20',f) for f in filelist6 if f.endswith('.fits')]
+    filelist7_group = [os.path.join('km25',f) for f in filelist7 if f.endswith('.fits')]
+    filelist8_group = [os.path.join('km30',f) for f in filelist8 if f.endswith('.fits')]
+    filelist9_group = [os.path.join('km35',f) for f in filelist9 if f.endswith('.fits')]
+    filelist10_group = [os.path.join('km40',f) for f in filelist10 if f.endswith('.fits')]
+    filelist11_group = [os.path.join('km45',f) for f in filelist11 if f.endswith('.fits')]
+    filelist12_group = [os.path.join('km50',f) for f in filelist12 if f.endswith('.fits')]
+    filelist13_group = [os.path.join('kp00',f) for f in filelist13 if f.endswith('.fits')]
+    filelist14_group = [os.path.join('kp01',f) for f in filelist14 if f.endswith('.fits')]
+    filelist15_group = [os.path.join('kp02',f) for f in filelist15 if f.endswith('.fits')]
+    filelist16_group = [os.path.join('kp03',f) for f in filelist16 if f.endswith('.fits')]
+    filelist17_group = [os.path.join('kp05',f) for f in filelist17 if f.endswith('.fits')]
+    filelist18_group = [os.path.join('kp10',f) for f in filelist18 if f.endswith('.fits')]
+    
+    filelist_group=filelist1_group + filelist2_group + filelist3_group + filelist4_group + filelist5_group+ \
+filelist6_group + filelist7_group + filelist8_group + filelist9_group + filelist10_group + filelist11_group + filelist12_group + filelist5_group+ \
+filelist13_group + filelist14_group + filelist15_group + filelist16_group + filelist17_group + filelist18_group
+    
+    fits_files=filelist_group
+    
+    obj_headers = []
+    obj_files = []
+    for filename in fits_files:
+        index=0
+        if re.search('fits',filename):  #example of filename filter
+            index+=1
+            fullfilename = os.path.join(SEDfile_dir,filename)
+            hdr = fits.getheader(fullfilename)
+            obj_headers.append(hdr)
+            obj_files.append(filename)
+    
+    obj_temperatures = []
+    obj_log_z_all = []
+    index=0
+    for hdr in obj_headers: 
+        obj_temp=obj_headers[index]['TEFF']
+        obj_logz=obj_headers[index]['LOG_Z']
+        obj_temperatures.append(obj_temp)
+        obj_log_z_all.append(obj_logz)
+        index+=1
+ 
+    obj_names2 = []
+    index=0
+    obj_temp = []
+
+    for thefile in fits_files:
+        #thenames=re.findall('^bk_([a-z][0-9]+).fits$',thefile)
+        thenames=re.findall('([a-z].+_[0-9].+).fits$',thefile) 
+        temp=re.findall('([a-z].+_[0-9].+).fits$',thefile) 
+        if(len(thenames)>0):
+            obj_names2.append(thenames[0])
+        else:
+            print 'bad file ',thefile
+        index+=1
+    
+    
+    obj_names=obj_names2
+    obj_files=filelist_group
+    
+    objames_and_objfiles = zip(obj_names, obj_files)
+    objames_and_objtemp = zip(obj_names, obj_temperatures)
+    objtemp_and_objlogz = zip(obj_temperatures,obj_log_z_all)
+    all_logg=np.array([0.0,1.,2.,3.,4.])  # gravity
+    
+    for temp,logz in objtemp_and_objlogz:
+        #Icat(model,temp,logz,logg)
+        for logg in all_logg:
+            sed = S.Icat('k93models', temp,logz,logg) 
+            sed.convert('flam') # to be sure every spectrum is in flam unit
+            all_sed.append(sed)
+    
+    return all_sed    
+    
+#----------------------------------------------------------------------------------------------    
 def get_all_thermalbb_flatT(N=100,TMIN=3000.,TMAX=50000.):
     
     all_sed=[]   
@@ -572,11 +699,12 @@ if __name__ == "__main__":
     
     Flag_CALSPEC_HD=False
     Flag_BC95_Z3=False
-    Flag_KC93_Z3=True
+    Flag_KC93_Z0=False
     Flag_THERMALBB=False
     Flag_PHOENIX=False
     Flag_CK04=False
     Flag_PICKLE=False
+    Flag_K93=True
     
     if Flag_CALSPEC_HD:
         all_sed=get_all_calspec_hd()
@@ -585,13 +713,13 @@ if __name__ == "__main__":
 
     
     if Flag_BC95_Z3:
-        all_sed=get_all_bc95(z=3)
+        all_sed=get_all_bc95(z=0)
         plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',XMIN=0,XMAX=11000.,yscale='lin')
         plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',XMIN=0,XMAX=11000.,yscale='log')
     
     
-    if Flag_KC93_Z3:
-        all_sed=get_all_kc96(z=3)
+    if Flag_KC93_Z0:
+        all_sed=get_all_kc96(z=0)
         plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_lin.png',yscale='lin')
         plot_allsed(all_sed,'SED of Kinney-Calzetti Atlas (kc96 galaxies)','gal_kc96_log.png',yscale='log')
     
@@ -615,4 +743,8 @@ if __name__ == "__main__":
         plot_allsed(all_sed,'SED of pickle stars','star_pickle_lin.png',yscale='lin')
         plot_allsed(all_sed,'SED of pickle stars','star_pickle_log.png',yscale='log')
         
+    if Flag_K93:
+        all_sed=get_many_k93model()
+        plot_allsed(all_sed,'SED of k93 stars','star_k93_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of k93 stars','star_k93_log.png',yscale='log')
     
