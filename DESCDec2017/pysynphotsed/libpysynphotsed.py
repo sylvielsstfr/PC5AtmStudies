@@ -538,7 +538,8 @@ filelist13_group + filelist14_group + filelist15_group + filelist16_group + file
     objames_and_objfiles = zip(obj_names, obj_files)
     objames_and_objtemp = zip(obj_names, obj_temperatures)
     objtemp_and_objlogz = zip(obj_temperatures,obj_log_z_all)
-    all_logg=np.array([0.0,1.,2.,3.,4.])  # gravity
+    #all_logg=np.array([0.0,1.,2.,3.,4.])  # gravity
+    all_logg=np.array([0.0])  # gravity
     
     for temp,logz in objtemp_and_objlogz:
         #Icat(model,temp,logz,logg)
@@ -548,7 +549,128 @@ filelist13_group + filelist14_group + filelist15_group + filelist16_group + file
             all_sed.append(sed)
     
     return all_sed    
+#------------------------------------------------------------------------------------------------------    
+def get_many_bkmodels():
     
+    all_sed=[]  
+    
+    SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[10])
+    filelist=os.listdir(SEDfile_dir) 
+    fits_files = [f for f in os.listdir(SEDfile_dir) if f.endswith('.fits')]
+    
+    obj_headers = []
+    obj_files = []
+    for filename in fits_files:
+        index=0
+        if re.search('fits',filename):  #example of filename filter
+            index+=1
+            fullfilename = os.path.join(SEDfile_dir,filename)
+            hdr = fits.getheader(fullfilename)
+            obj_headers.append(hdr)
+            obj_files.append(filename)
+            
+            
+    obj_names = []
+    index=0
+    for hdr in obj_headers: 
+        obj_name=obj_headers[index]['TARGETID']
+        obj_names.append(obj_name)
+        index+=1
+        
+    obj_names2 = []
+    index=0
+    for thefile in fits_files:
+        thenames=re.findall('^bk_([a-z][0-9]+).fits$',thefile)
+        if(len(thenames)>0):
+            obj_names2.append(thenames[0])
+        else:
+            print 'bad file ',thefile
+        index+=1
+        
+    obj_names=obj_names2
+    
+    
+    objames_and_objfiles = zip(obj_names, obj_files)
+    
+    OBJDict= {}
+    for obj,thefile in objames_and_objfiles:
+        #print obj,': '
+        OBJDict[obj]=thefile
+    
+    
+    for keyobj in OBJDict:
+        the_file=OBJDict[keyobj]
+        
+        selected_file=the_file
+        selected_fullfile=os.path.join(SEDfile_dir,selected_file)
+        
+        sed=S.FileSpectrum(selected_fullfile)
+        sed.convert('flam') # to be sure every spectrum is in flam unit
+        all_sed.append(sed)
+    
+    return all_sed    
+#-------------------------------------------------------------------------------------------------
+def get_many_bpgs():
+
+     all_sed=[]  
+     SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[1]) 
+     fits_files = [f for f in os.listdir(SEDfile_dir) if f.endswith('.fits')]
+     
+     obj_headers = []
+     obj_files = []
+     for filename in fits_files:
+         index=0
+         if re.search('fits',filename):  #example of filename filter
+             index+=1
+             fullfilename = os.path.join(SEDfile_dir,filename)
+             hdr = fits.getheader(fullfilename)
+             obj_headers.append(hdr)
+             obj_files.append(filename)
+             
+     obj_names = []
+     
+     index=0
+     for hdr in obj_headers: 
+         obj_name=obj_headers[index]['TARGETID']
+         obj_names.append(obj_name)
+         index+=1
+        
+     obj_names2 = []
+     index=0
+     for thefile in fits_files:
+        #thenames=re.findall('^bk_([a-z][0-9]+).fits$',thefile)
+        thenames=re.findall('^bpgs_([0-9].*).fits$',thefile)
+        if(len(thenames)>0):
+            obj_names2.append('bpgs_'+thenames[0])
+        else:
+            print 'bad file ',thefile
+        index+=1
+     
+     obj_names=obj_names2
+     
+     objames_and_objfiles = zip(obj_names, obj_files)
+     
+     OBJDict= {}
+     for obj,thefile in objames_and_objfiles:
+         OBJDict[obj]=thefile
+   
+     for keyobj in OBJDict:
+         the_file=OBJDict[keyobj]
+        
+         selected_file=the_file
+         selected_fullfile=os.path.join(SEDfile_dir,selected_file)
+        
+         sed=S.FileSpectrum(selected_fullfile)
+     
+         sed.convert('flam') # to be sure every spectrum is in flam unit
+         all_sed.append(sed)
+         
+         
+     return all_sed    
+#-----------------------------------------------------------------------------------------------    
+    
+    
+
 #----------------------------------------------------------------------------------------------    
 def get_all_thermalbb_flatT(N=100,TMIN=3000.,TMAX=50000.):
     
@@ -704,7 +826,9 @@ if __name__ == "__main__":
     Flag_PHOENIX=False
     Flag_CK04=False
     Flag_PICKLE=False
-    Flag_K93=True
+    Flag_K93=False
+    Flag_BK=False
+    Flag_BPGS=True
     
     if Flag_CALSPEC_HD:
         all_sed=get_all_calspec_hd()
@@ -747,4 +871,15 @@ if __name__ == "__main__":
         all_sed=get_many_k93model()
         plot_allsed(all_sed,'SED of k93 stars','star_k93_lin.png',yscale='lin')
         plot_allsed(all_sed,'SED of k93 stars','star_k93_log.png',yscale='log')
+        
+    if Flag_BK:
+        all_sed=get_many_bkmodels()
+        plot_allsed(all_sed,'SED of bk stars','star_bk_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of bk stars','star_bk_log.png',yscale='log')
+        
+    if Flag_BPGS:    
+        all_sed=get_many_bpgs()
+        plot_allsed(all_sed,'SED of bpgs stars','star_bpgs_lin.png',yscale='lin')
+        plot_allsed(all_sed,'SED of bpgs stars','star_bpgs_log.png',yscale='log')
+        
     
