@@ -759,6 +759,70 @@ def get_all_bc95(z=0):
             all_sed.append(sed)
     return all_sed
     
+
+#------------------------------------------------------------------------------------------------
+def get_many_bc95():
+    '''
+    
+    Get many Galaxy profiles
+    '''
+    
+    
+    SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[5],'templates')
+    
+    filelist=os.listdir(SEDfile_dir)
+   
+    
+    obj_headers = []
+    obj_files = []
+    index=0
+    for filename in filelist:  
+        if re.search('fits',filename):  #example of filename filter
+            index+=1
+            fullfilename = os.path.join(SEDfile_dir,filename)
+            hdr = fits.getheader(fullfilename)
+            obj_headers.append(hdr)
+            obj_files.append(filename)
+            
+    obj_names = []
+    index=0
+    for hdr in obj_headers: 
+        obj_name=obj_headers[index]['TARGETID']
+        obj_names.append(obj_name)
+        index+=1
+        
+    objames_and_objfiles = zip(obj_names, obj_files)
+    
+    OBJDict= {}
+    for obj,thefile in objames_and_objfiles:
+        print obj,': '
+        OBJDict[obj]=thefile
+        print OBJDict[obj] 
+    
+    all_sed=[]  
+    all_z_rs=np.linspace(0,2.,50)
+      
+    for keyobj in OBJDict:
+        the_file=OBJDict[keyobj]
+        
+        selected_file=the_file
+        selected_fullfile=os.path.join(SEDfile_dir,selected_file)
+        
+        sed=S.FileSpectrum(selected_fullfile)
+        sed.convert('flam') # to be sure every spectrum is in flam unit
+
+        # loop on Redshifts
+        for z_rs in all_z_rs:
+            if (z_rs>0):
+                sed_z=sed.redshift(z_rs)
+                all_sed.append(sed_z)
+            else:
+                all_sed.append(sed)
+                
+                
+                
+    return all_sed
+
  #------------------------------------------------------------------------------------------------   
 def get_all_kc96(z=0):
     SEDfile_dir=os.path.join(top_pysynphot_data_dir,dir_nostar,dir_submodels[13])
@@ -821,6 +885,7 @@ if __name__ == "__main__":
     
     Flag_CALSPEC_HD=False
     Flag_BC95_Z3=False
+    Flag_BC95=True
     Flag_KC93_Z0=False
     Flag_THERMALBB=False
     Flag_PHOENIX=False
@@ -828,7 +893,7 @@ if __name__ == "__main__":
     Flag_PICKLE=False
     Flag_K93=False
     Flag_BK=False
-    Flag_BPGS=True
+    Flag_BPGS=False
     
     if Flag_CALSPEC_HD:
         all_sed=get_all_calspec_hd()
@@ -838,6 +903,11 @@ if __name__ == "__main__":
     
     if Flag_BC95_Z3:
         all_sed=get_all_bc95(z=0)
+        plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',XMIN=0,XMAX=11000.,yscale='lin')
+        plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',XMIN=0,XMAX=11000.,yscale='log')
+        
+    if Flag_BC95:
+        all_sed=get_many_bc95()
         plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_lin.png',XMIN=0,XMAX=11000.,yscale='lin')
         plot_allsed(all_sed,'SED of Bruzaual-Charlot Atlas (bc95 galaxies)','gal_bc95_log.png',XMIN=0,XMAX=11000.,yscale='log')
     
