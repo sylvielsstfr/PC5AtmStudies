@@ -795,17 +795,18 @@ def get_many_bc95():
     
     OBJDict= {}
     for obj,thefile in objames_and_objfiles:
-        print obj,': '
+        #print obj,': '
         OBJDict[obj]=thefile
-        print OBJDict[obj] 
+        #print OBJDict[obj] 
     
     all_sed=[]  
-    all_z_rs=np.linspace(0,2.,50)
+    all_z_rs=np.linspace(0,2.,10)
       
-    for keyobj in OBJDict:
-        the_file=OBJDict[keyobj]
-        
-        selected_file=the_file
+    #for keyobj in OBJDict:
+    for obj,thefile in objames_and_objfiles:
+        #the_file=OBJDict[keyobj]
+        #selected_file=the_file
+        selected_file=thefile
         selected_fullfile=os.path.join(SEDfile_dir,selected_file)
         
         sed=S.FileSpectrum(selected_fullfile)
