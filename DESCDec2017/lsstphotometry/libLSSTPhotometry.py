@@ -812,7 +812,8 @@ class LSSTObservation(object):
         return self.colors
     #----------------------------------------------------------------------------------------------------------
     
-    
+    def get_colors(self):
+        return self.colors
     
     #----------------------------------------------------------------------------------------------------------
     def show_colors_0pt(self,index0,xarray,title,xtitle,figname,dt=EXPOSURE):
