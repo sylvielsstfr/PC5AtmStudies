@@ -15,3 +15,14 @@ MegaCam instrument transmission functions at 1.25 airmass.
 http://www.cfht.hawaii.edu/fr/projets/
 
 
+## Notebooks
+
+### Read CFHT/Megacam transmissions
+-MegaCAMTransm.ipynb
+
+
+### Read cathalog of SNLS and plot the sky
+
+-PlotSNLSSky.ipynb
+-ReadSNLSCatalog.ipynb
+
