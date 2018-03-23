@@ -164,7 +164,7 @@ class Atmosphere(object):
         for eventnum in np.arange(1,nbevents):         
             atmname='ATM_'+str(eventnum)
             tr_atm=self.array[eventnum,:]
-            bp_atm= S.ArrayBandpass(wl_atm*10.,tr_atm, name=atmname)
+            bp_atm= S.ArrayBandpass(wl_atm,tr_atm, name=atmname)
             self.pys_pb.append(bp_atm)
             
         return self.pys_pb
@@ -198,7 +198,7 @@ class Atmosphere(object):
     
 class SNLSTransmission(object):
     '''
-    class LSSTTransmission(object)
+    class SNLSTransmission(object)
     
     Compute the product of atmospheric transmissions with filter bands
     Fill a 2D array of transmission
