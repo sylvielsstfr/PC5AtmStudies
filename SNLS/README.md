@@ -25,4 +25,12 @@ http://www.cfht.hawaii.edu/fr/projets/
 
 -PlotSNLSSky.ipynb
 -ReadSNLSCatalog.ipynb
+- SNLSColors.ipynb
+- ShowPlot\_libcolors.ipynb
 
+
+
+
+## libraries
+- libCFHTFilters.py  
+- libSNLSPhotometry.py
