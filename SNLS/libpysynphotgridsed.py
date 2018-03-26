@@ -50,7 +50,7 @@ Temperature_range=np.arange(TMIN,TMAX,TSTEP)
 TypeStar_to_Temperature = {"O":25000., "B":10000., "A":7500.,"F":6000.,"G":5000.,"K":3500 }
 TypeStar_to_color= {"O":'c', "B":'b', "A":'g',"F":'r',"G":'m',"K":"k" }
 TypeStar_to_number= {"O":0, "B":1, "A":2,"F":3,"G":4,"K":5 }
-Set_Log_G=np.array([1.,2.,3.,4.,5.])
+Set_Log_G=np.array([0.,1.,2.,3.,4.,5.])
 Set_Log_Z=np.array([-2.5,-2.,-1.5,-1.,-.5,0.,0.2,0.5])
 
 
@@ -85,14 +85,14 @@ def get_grid_phoenixmodels():
     
     index=1
     for temp in Temperature_range:
-        for log_g in Set_Log_G:
+        for logg in Set_Log_G:
             for logz in Set_Log_Z:
                 data[index,index_temp]=temp
-                data[index,index_logg]=log_g
+                data[index,index_logg]=logg
                 data[index,index_logz]=logz
                 
                 
-                sed = S.Icat('phoenix', temp, logz, log_g) 
+                sed = S.Icat('phoenix', temp, logz, logg) 
                 sed.convert('flam') # to be sure every spectrum is in flam unit
                 if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
                     data[index,index_val]=1
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     hdr['TMAX'] = TMAX
     hdr['TSTEP'] = TSTEP
     hdr['LOGZ'] =np.array_str(Set_Log_Z)
-    hdr['LOGGG']=np.array_str(Set_Log_G)
+    hdr['LOGG']=np.array_str(Set_Log_G)
     
     print hdr
     
