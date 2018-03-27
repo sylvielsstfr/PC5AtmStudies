@@ -104,6 +104,30 @@ def get_grid_phoenixmodels():
     
 #------------------------------------------------------------------------------------------
 
+def FitsToPySynphotSED(file_fits):
+    
+    all_sed=[]
+    all_indexes_inFits=[]
+    
+    hdul = fits.open(file_fits)
+    data = hdul[0].data
+    
+    
+    wl=data[0,index_spec:]
+    
+    good_indexes=np.where(data[0:,index_val]>0)[0]
+    
+    
+    # loop on good spectra only
+    for index in good_indexes:
+        flux=data[index,index_spec:]
+        
+        sp = S.ArraySpectrum(wave=wl, flux=flux, waveunits='angstrom', fluxunits='flam')
+        all_sed.append(sp)
+        all_indexes_inFits.append(index)
+        
+    all_indexes_inFits=np.array(all_indexes_inFits)
+    return all_sed,all_indexes_inFits   
 
 #---------------------------------------------------------------------------------
 def plot_allsed():
@@ -115,7 +139,16 @@ def plot_allsed():
     
 #------------------------------------------------------------------------------------------------
 
-        
+  #---------------------------------------------------------------------------------
+def plot_allsed2():
+    plt.figure()   
+    img=plt.imshow(data[1:,index_spec:],origin='lower',cmap='jet')
+    plt.colorbar(img)
+    plt.grid(True)
+    plt.show()
+    
+#------------------------------------------------------------------------------------------------
+      
 
 #------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
