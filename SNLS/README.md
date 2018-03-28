@@ -1,4 +1,11 @@
 # README.md:
+# ===================
+
+- author : Sylvie Dagoret-Campagne
+- date :  March 28th 2018 
+
+
+
 
 To produce a catalog of SED from Pysynphot according distribution of stars
 in SNLS field.
@@ -46,7 +53,8 @@ http://www.cfht.hawaii.edu/fr/projets/
 ### Calculations of magnitudes from SED
 - **ShowPlot\_libcolors.ipynb** : Simple example to show how one can compute SNLS magnitudes and colors from SED
 
-
+### Compare the model and the SNLS magnitudes
+- **CompareSNLSandModel.ipynb**
 
 ## libraries
 - **libCFHTFilters.py** : Show all transmissions of CFHT
