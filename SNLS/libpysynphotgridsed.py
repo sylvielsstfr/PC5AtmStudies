@@ -100,7 +100,27 @@ def get_grid_phoenixmodels():
                     flux=func(WL)
                     data[index,index_spec:]=flux
                 index+=1
- 
+#------------------------------------------------------------------------------------------
+def get_grid_phoenixmodels_extinct(extvalue):
+    
+    index=1
+    for temp in Temperature_range:
+        for logg in Set_Log_G:
+            for logz in Set_Log_Z:
+                data[index,index_temp]=temp
+                data[index,index_logg]=logg
+                data[index,index_logz]=logz
+                
+                
+                sed = S.Icat('phoenix', temp, logz, logg) * S.Extinction(extvalue,'mwavg')
+                sed.convert('flam') # to be sure every spectrum is in flam unit
+                if(max(sed.flux)>0): # remove empty fluxes because of bad parameters
+                    data[index,index_val]=1
+                    func=interp1d(sed.wave,sed.flux,kind='cubic')
+                    flux=func(WL)
+                    data[index,index_spec:]=flux
+                index+=1
+  
     
 #------------------------------------------------------------------------------------------
 
@@ -173,7 +193,8 @@ if __name__ == "__main__":
   
     
     if Flag_PHOENIX:
-        get_grid_phoenixmodels()
+        #get_grid_phoenixmodels()
+        get_grid_phoenixmodels_extinct(1.0)
         plot_allsed()
         
     hdr = fits.Header()
@@ -192,4 +213,4 @@ if __name__ == "__main__":
     print hdr
     
     hdu = fits.PrimaryHDU(data,header=hdr)
-    hdu.writeto('sedgrid_phoenixmodels.fits',overwrite=True)
+    hdu.writeto('sedgrid_phoenixmodels_extinct_10.fits',overwrite=True)
