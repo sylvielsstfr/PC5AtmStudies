@@ -194,7 +194,7 @@ if __name__ == "__main__":
     
     if Flag_PHOENIX:
         #get_grid_phoenixmodels()
-        get_grid_phoenixmodels_extinct(1.0)
+        get_grid_phoenixmodels_extinct(5.0)
         plot_allsed()
         
     hdr = fits.Header()
@@ -213,4 +213,4 @@ if __name__ == "__main__":
     print hdr
     
     hdu = fits.PrimaryHDU(data,header=hdr)
-    hdu.writeto('sedgrid_phoenixmodels_extinct_10.fits',overwrite=True)
+    hdu.writeto('sedgrid_phoenixmodels_extinct_50.fits',overwrite=True)
