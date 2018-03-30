@@ -75,6 +75,7 @@ index_temp=2
 index_logg=3
 index_logz=4
 index_spec=5
+index_mag=index_spec+NBWLBINS
 
 data=np.zeros((NBROW+1,NBCOL))
 data[0,index_spec:]=WL
