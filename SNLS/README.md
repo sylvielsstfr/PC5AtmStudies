@@ -37,7 +37,7 @@ http://www.cfht.hawaii.edu/fr/projets/
 *"all_SNLS_transm.csv"* and *"tot_SNLS_transm.csv"*
 
 
-### Read cathalog of SNLS and plot the sky
+### Read catalog of SNLS and plot the sky
 
 - **ReadSNLSCatalog.ipynb** : Read SNLS catalog and extract relevant magnitudes into a csv file *"SNLS_catD1D2D4.csv"*
 - **PlotSNLSSky.ipynb** : Skymaps SNLS catalog in the sky from file *"SNLS_catD1D2D4.csv"*

@@ -18,6 +18,8 @@ cmap = cm.jet
 import pysynphot as S
 from scipy.interpolate import interp1d
 import astropy.units as u
+from astropy.table import Table
+
 
 NBBANDS=5
 band_to_number={'u':0,'g':1,'r':2,'i':3,'z':4}
@@ -31,16 +33,16 @@ mpl_colors_col=['b','g','r','k']
 WLMIN=3000. # Minimum wavelength : PySynPhot works with Angstrom
 WLMAX=11000. # Minimum wavelength : PySynPhot works with Angstrom
 
-NBINS=10000 # Number of bins between WLMIN and WLMAX
+NBINS=int(WLMAX-WLMIN) # Number of bins between WLMIN and WLMAX
 BinWidth=(WLMAX-WLMIN)/float(NBINS) # Bin width in Angstrom
 WL=np.linspace(WLMIN,WLMAX,NBINS)   # Array of wavelength in Angstrom
 
-CFHT_COLL_SURF=np.pi/4.*(3.6*u.m)**2/(u.cm)**2  # LSST collectif surface
+CFHT_COLL_SURF=np.pi/4.*(3.6*u.m)**2/(u.cm)**2  # CFHT collectif surface
 S.refs.setref(area=CFHT_COLL_SURF.decompose(), waveset=None)
 S.refs.set_default_waveset(minwave=WLMIN, maxwave=WLMAX, num=NBINS, delta=BinWidth, log=False)
 S.refs.showref()
 
-EXPOSURE=30.0                      # LSST Exposure time
+EXPOSURE=1.0                      # Normalise the mangintude to 1 sec  Exposure time
 
 # to enlarge the sizes
 params = {'legend.fontsize': 'x-large',
@@ -186,6 +188,7 @@ class Atmosphere(object):
         plt.xlabel("$\lambda$ (Angstrom)",weight="bold")
         plt.ylabel("transmission",weight="bold")
         plt.savefig("atm-transm.png")
+        plt.show()
         
         
 #---------------------------------------------------------------------------        
@@ -240,7 +243,7 @@ class SNLSTransmission(object):
         if(len(self.array))== 0:
             self.make_transmissions()
             
-
+        plt.figure()    
         for event in np.arange(self.NBEVENTS):
             all_bands=self.array[event]
             ib=0
@@ -251,6 +254,7 @@ class SNLSTransmission(object):
         plt.xlabel( '$\lambda$ (Angstrom)',weight="bold")
         plt.ylabel('transmission',weight="bold")
         plt.grid()
+        plt.show()
             
 #------------------------------------------------------------------------------------        
 
@@ -442,7 +446,7 @@ class SNLSObservation(object):
                 for obsband in obs_per_event:  # loop on bands
                     # do interpolation inside each band
                     #------------------------------------
-                    func=interp1d(obsband.wave,obsband.flux,kind='cubic')
+                    func=interp1d(obsband.wave,obsband.flux,kind='linear')
                     flux=func(WL)              # flux in each bin in array WL
                     all_obssampl_bands.append(flux) # save the band
                 all_obssampl_persedsource.append(all_obssampl_bands) # save that event   
@@ -1496,22 +1500,144 @@ class SNLSObservation(object):
 if __name__ == "__main__":
     print 'hello'
     
-    NBEVENTS=20
-    NBCOLUMNS=5
+    #-----------------------------------------------------------------------------------
+    # take a simple SED : flat in flam units
+    #----------------------------------------------------------------------------------
+    plt.figure()
+    flatsp = S.FlatSpectrum(1, fluxunits='flam')
+    plt.plot(flatsp.wave, flatsp.flux)
+    plt.xlabel(flatsp.waveunits)
+    plt.ylabel(flatsp.fluxunits)
+    plt.title(flatsp.name)
+    plt.show()
     
-    MyAtm=Atmosphere('libradtran')
+    #-------------------------------------------------------------------------------
+    #  CFHT passband in Angstrom
+    #--------------------------------------------------------------------------------
+    bp_u,bp_g,bp_r,bp_i,bp_z=cfht.GetAllCFHTBands(cfht_transmissionfile)  #SNLS passband
+    cfht.PlotAllCFHTBands(bp_u,bp_g,bp_r,bp_i,bp_z)
     
     
-    for event in np.arange(NBEVENTS):
-        newarray=np.random.random_sample(NBCOLUMNS)
-        MyAtm.fill_array(newarray)
- 
+    
+    #------------------------------------------------------------------------------
+    # take standard SNLS atmosphere
+    #-------------------------------------------------------------------------------
+    photo_atm=photo.Atmosphere('SNLS atmosphere')
+    df=pd.read_csv(cfht_transmissionfile)
+    df.sort_index(axis=0,ascending=True,inplace=True)     
+    wl_atm=df["lambda"]
+    tr_atm=df["atm"]
+    wl_atm=np.array(wl_atm)   
+    tr_atm=np.array(tr_atm)
+    photo_atm.fill_array(wl_atm)        
+    photo_atm.fill_array(tr_atm)  
+    
+    theatmosph=photo_atm.get_array()
+    photo_atm.plot_pys_bp()
+    all_bp_atm=photo_atm.get_pys_pb()        # atmospheric passband
+    
+    #----------------------------------------------------------------------------------
+    # CFHT detector and fill its passbands
+    #----------------------------------------------------------------------------------
+    cfhtdetector=photo.SNLSTransmission('cfhtel')
+    
+    cfhtdetector.fill_det_allbands([bp_u,bp_g,bp_r,bp_i,bp_z])
+    cfhtdetector.fill_atm_allevents(all_bp_atm)
+    
+    all_transmissions=cfhtdetector.make_transmissions()
+    cfhtdetector.plot_transmissions()
+    
+    #-----------------------------------------------------------------------------------
+    # The observation
+    #--------------------------------------------------------------------------------------
+    the_observation=photo.SNLSObservation('SNLSObs')               # create a set of observation 
+    the_observation.fill_sed([flatsp])                             # get the SED from the SED model model
+    the_observation.fill_transmission(all_transmissions)           # provide LSST Trroughput transmission
+    the_observation.make_observations()                            # start calculations 
+    the_observation.make_samplobservations()
+    the_observation.compute_counts()
+    the_observation.compute_magnitude()
+    the_observation.compute_colors()
+    the_observation.plot_observations(0)
+    the_observation.plot_samplobservations(0)
     
     
-    MyAtm.print_array()
     
-    theatm=MyAtm.get_array()
+    # Compute by phsynphot
+    print "============================================================================================================================"
     
-    print theatm
+    df = pd.DataFrame(columns =  ["U", "G", "R","I","Z"])
+    df.describe()
+    
+
+    
+    
+    all_obs=the_observation.get_observations()
+    
+    U=all_obs[0][0][0]
+    G=all_obs[0][0][1]
+    R=all_obs[0][0][2]
+    I=all_obs[0][0][3]
+    Z=all_obs[0][0][4]
+    
+    
+    CR_U=U.countrate()
+    CR_G=G.countrate()
+    CR_R=R.countrate()
+    CR_I=I.countrate()
+    CR_Z=Z.countrate()
+    
+    df.append([CR_U,CR_G,CR_R,CR_I,CR_Z])
+    #df.iloc[len(df)] = np.array([CR_U,CR_G,CR_I,CR_Z])
+    
+    
+    
+    #t = Table(  [[CR_U,CR_G,CR_R,CR_I,CR_Z]], names=['u', 'g', 'r','i','z'],dtype=['f8', 'f8', 'f8','f8','f8'] )
+    #t = Table(  [[CR_U,CR_G,CR_R,CR_I,CR_Z]], dtype=('f8', 'f8', 'f8','f8','f8')  )
+    
+    #print(t)
+    
+    
+    
+    df
+    print "============================================================================================================================"
+    
+    print "countrate by phsynphot :",CR_U,' ,  ', CR_G,' ,  ',CR_R,' ,  ',CR_I,' ,  ',CR_Z
+    #print "countrate by phsynphot :",all_obs[0][0]
+    
+    
+    all_counts=the_observation.counts[0][0]
+    print "coutrate by me        : ",all_counts
+    
+    
+    df.append([all_counts[0], all_counts[1],all_counts[2], all_counts[3],all_counts[4]])
+    df.head()
+    
+    mag_U=U.effstim('obmag') 
+    mag_G=G.effstim('obmag') 
+    mag_R=R.effstim('obmag') 
+    mag_I=I.effstim('obmag') 
+    mag_Z=Z.effstim('obmag') 
+    
+    mag_U=U.effstim() 
+    mag_G=G.effstim() 
+    mag_R=R.effstim() 
+    mag_I=I.effstim() 
+    mag_Z=Z.effstim() 
+    
+    #mag_U=U.efflam()
+    #mag_G=G.efflam()
+    #mag_R=R.efflam()
+    #mag_I=I.efflam()
+    #mag_Z=Z.efflam()
+    
+    
+    print "magnitudes by phsynphot :",mag_U,' ,  ', mag_G,' ,  ',mag_R,' ,  ',mag_I,' ,  ',mag_Z
+    
+    
+    all_mymag=the_observation.get_magnitudes()[0][0]
+    print "magnitudes by me        : ",all_mymag
+    
+    
     
     
