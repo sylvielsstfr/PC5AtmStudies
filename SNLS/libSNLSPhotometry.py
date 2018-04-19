@@ -1619,11 +1619,11 @@ if __name__ == "__main__":
     mag_I=I.effstim('obmag') 
     mag_Z=Z.effstim('obmag') 
     
-    mag_U=U.effstim() 
-    mag_G=G.effstim() 
-    mag_R=R.effstim() 
-    mag_I=I.effstim() 
-    mag_Z=Z.effstim() 
+    #mag_U=U.effstim() 
+    #mag_G=G.effstim() 
+    #mag_R=R.effstim() 
+    #mag_I=I.effstim() 
+    #mag_Z=Z.effstim() 
     
     #mag_U=U.efflam()
     #mag_G=G.efflam()
