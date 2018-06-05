@@ -60,7 +60,7 @@ Two csv file are produced either with magnitudes or colors.
 
 - **ShowColorPlot\_libcolors2\_pickles.ipynb** : This one calculate the  AB magnitudes for pickles : it is the one to be used
 
-
+- **ShowColorPlot_libcolors2_regenerated.ipynb** : Do the same thing on regenerated SED
 
 ### Compare the model and the SNLS magnitudes
 
@@ -77,6 +77,9 @@ This is a validation of the SED catalog used and the way to calculate the colors
 From this result, one can validate pickles catalog.
 
 
+-  **CompareSNLSandModel_regenerated.ipynb** : compare the colors (AB) 
+-  **add CompareSNLSandModel_regenerated.ipynb** : Cmpare the magnitudes (AB)
+
 ### Select the Nearest Neighbourg SED
 
 The goal is to associate an SED to each obj of SNLS magnitude catalog.
@@ -86,7 +89,9 @@ As the color comparison has been validated previously with pickles, only pickles
 - **SelectKNearestNeighbors.ipynb** : it is implemented for pickles star matching using K Nearest Neighbor implemented in scikit learn.
 
 
+### Regenerate the SED
 
+- **Regenerate_SED.ipynb** : based on picles
 
 ### Other Tools
 - **CalibrationSpectra.ipynb** : Check how one can use calibrated magnitude system in pynsynphot : it is a pedagogical system.
