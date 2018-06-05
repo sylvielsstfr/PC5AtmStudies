@@ -3,6 +3,7 @@
 
 - author : Sylvie Dagoret-Campagne
 - date :  March 28th 2018 
+- update : Jun 5th 2018
 
 
 
@@ -45,16 +46,62 @@ http://www.cfht.hawaii.edu/fr/projets/
 
 
 
-
 ### About Pysynphot models:
 
-- **CheckGridSED.ipynb** : check the SED catalog produced by **libpysynphotgridsed.py**
+- **CheckGridSED.ipynb** : check the SED catalog produced by **libpysynphotgridsed.py**: this is valid for pickles and phoenix stars
 
-### Calculations of magnitudes from SED
-- **ShowPlot\_libcolors.ipynb** : Simple example to show how one can compute SNLS magnitudes and colors from SED
+### Calculations of SNLS magnitudes from SED
+
+Two csv file are produced either with magnitudes or colors.
+
+- **ShowPlot\_libcolors.ipynb** : Simple example to show how one can compute SNLS magnitudes and colors from SED (deprecated)
+
+- **ShowColorPlot\_libcolors2.ipynb** : This one calculate the  AB magnitudes with Phoenix model : it is the one to be used
+
+- **ShowColorPlot\_libcolors2\_pickles.ipynb** : This one calculate the  AB magnitudes for pickles : it is the one to be used
+
+
 
 ### Compare the model and the SNLS magnitudes
-- **CompareSNLSandModel.ipynb**
+
+
+The goal is to compare colors of SNLS catalog wrt SNLS colors calculated on SED.
+This is a validation of the SED catalog used and the way to calculate the colors or magnitudes on SED catalog.
+
+- **CompareSNLSandModel.ipynb** : compare the magnitudes 
+
+- **CompareSNLSandModel\_phoenix.ipynb** : compare the magnitudes for phoenix stars
+
+- **CompareSNLSandModel_pickles.ipynb**	 : compare the magnitudes for pickles stars
+
+From this result, one can validate pickles catalog.
+
+
+### Select the Nearest Neighbourg SED
+
+The goal is to associate an SED to each obj of SNLS magnitude catalog.
+This association is done in color space, where the magnitudes are the AB system.
+As the color comparison has been validated previously with pickles, only pickles star match is performed.
+
+- **SelectKNearestNeighbors.ipynb** : it is implemented for pickles star matching using K Nearest Neighbor implemented in scikit learn.
+
+
+
+
+### Other Tools
+- **CalibrationSpectra.ipynb** : Check how one can use calibrated magnitude system in pynsynphot : it is a pedagogical system.
+
+- **MEGACAM\_FromPySynPhot.ipynb** : Check what physynphot gives as MEGACAM transmission. These transmissions are bad. Better use the one calculated here.
+
+- **CheckGridSED.ipynb** : Simple check of SED produced by libpysynphot	
+
+- **MergeSEDandMAG.ipynb**. : Study color plots for phoenix, including the impact of star temperature, metallicity and gravity.
+
+- **ShowColorPlot\_libcolors_abmag.ipynb** : Tool to play with a signle SED to compute magnitudes and colors in AB magnitudes.
+
+- **Extract\_FewSEDSampl.ipynb** : Deprecated
+
+- **SelectSED_pickle.ipynb** and **SelectSED_phoenix.ipynb**   select the SED produced by **libpysynphotgridsed.py**
 
 ## libraries
 - **libCFHTFilters.py** : Show all transmissions of CFHT
@@ -62,5 +109,5 @@ http://www.cfht.hawaii.edu/fr/projets/
 - **libSNLSPhotometry.py** : Calculate the SNLS magnitudes from SED
 
 - **libpysynphotgridsed.py** : Generate the SED from a model.
-Only phoenix stars are implemented for the moment. A fits file is produced.
+Only phoenix and pickles stars are implemented for the moment. A fits file is produced.
 
