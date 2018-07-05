@@ -57,7 +57,7 @@ Set_Log_Z=np.array([-2.5,-2.,-1.5,-1.,-.5,0.,0.2,0.5])
 
 # wavelength definitions
 WLMIN=3000. # Minimum wavelength : PySynPhot works with Angstrom
-WLMAX=11000. # Minimum wavelength : PySynPhot works with Angstrom
+WLMAX=11510. # Minimum wavelength : PySynPhot works with Angstrom
 NBWLBINS=int(WLMAX-WLMIN) # Number of bins between WLMIN and WLMAX
 WLBinWidth=(WLMAX-WLMIN)/float(NBWLBINS) # Bin width in Angstrom
 WL=np.linspace(WLMIN,WLMAX,NBWLBINS)   # Array of wavelength in Angstrom
@@ -82,8 +82,8 @@ index_mag=index_spec+NBWLBINS   # index where the magnitudes would start
 
 
 SELECTION_MODEL_PHOENIX=False
-SELECTION_MODEL_PICKLE_UVI=False
-SELECTION_MODEL_PICKLE_UVK=True
+SELECTION_MODEL_PICKLE_UVI=True
+SELECTION_MODEL_PICKLE_UVK=False
 
 
  
